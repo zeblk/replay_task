@@ -4,25 +4,25 @@ import os
 
 
 SESSION1_OBJECTS = [
-    "soccer_ball",
-    "rose",
-    "shirt",
-    "car",
-    "door",
-    "phone",
-    "apple",
-    "cat",
+    "1backpack",
+    "1computer",
+    "1fish",
+    "1hair",
+    "1table",
+    "1key",
+    "1lettuce",
+    "1boat",
 ]
 
 SESSION2_OBJECTS = [
-    "basketball",
-    "sunflower",
-    "jacket",
-    "bicycle",
-    "chair",
-    "camera",
-    "banana",
-    "dog",
+    "2beach",
+    "2carrot",
+    "2chair",
+    "2drill",
+    "2hand",
+    "2teapot",
+    "2tree",
+    "2turkey",
 ]
 
 
