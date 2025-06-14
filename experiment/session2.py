@@ -19,7 +19,6 @@ class Session2:
         event.globalKeys.add(key="escape", func=self._exit)
 
     def _exit(self):
-        self.win.close()
         core.quit()
 
     def show_object(self, obj_name: str):
