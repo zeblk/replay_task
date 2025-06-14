@@ -1,5 +1,6 @@
 from psychopy import visual, core, event
 from .utils import SESSION2_OBJECTS, get_permutation
+import os
 
 
 SCRAMBLED_REPEATS = 5
@@ -15,7 +16,12 @@ class Session2:
         self.win = visual.Window(color="black", fullscr=False)
 
     def show_object(self, obj_name: str):
-        stim = visual.TextStim(self.win, text=obj_name, color="white", height=0.1)
+        """Display an image corresponding to the given object name."""
+        img_path = os.path.join(os.path.dirname(__file__), "images", f"{obj_name}.png")
+        if os.path.exists(img_path):
+            stim = visual.ImageStim(self.win, image=img_path)
+        else:
+            stim = visual.TextStim(self.win, text=obj_name, color="white", height=0.1)
         stim.draw()
         self.win.flip()
         core.wait(OBJECT_DURATION)
