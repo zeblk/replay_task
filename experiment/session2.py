@@ -1,4 +1,5 @@
 from psychopy import visual, core, event
+from PIL import Image
 from .utils import SESSION2_OBJECTS, get_permutation
 import os
 
@@ -19,7 +20,13 @@ class Session2:
         """Display an image corresponding to the given object name."""
         img_path = os.path.join(os.path.dirname(__file__), "images", f"{obj_name}.png")
         if os.path.exists(img_path):
-            stim = visual.ImageStim(self.win, image=img_path)
+            # Scale image to occupy 25% of window width while preserving aspect ratio
+            with Image.open(img_path) as img:
+                img_w, img_h = img.size
+            win_w, _ = self.win.size
+            target_w = win_w * 0.25
+            target_h = target_w * img_h / img_w
+            stim = visual.ImageStim(self.win, image=img_path, size=(target_w, target_h))
         else:
             stim = visual.TextStim(self.win, text=obj_name, color="white", height=0.1)
         stim.draw()
