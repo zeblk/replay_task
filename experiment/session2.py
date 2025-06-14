@@ -15,6 +15,12 @@ class Session2:
         self.subject_id = subject_id
         self.perm = get_permutation(subject_id)
         self.win = visual.Window(color="black", fullscr=False)
+        event.globalKeys.clear()
+        event.globalKeys.add(key="escape", func=self._exit)
+
+    def _exit(self):
+        self.win.close()
+        core.quit()
 
     def show_object(self, obj_name: str):
         """Display an image corresponding to the given object name."""
