@@ -13,19 +13,14 @@ class Session1:
     def __init__(self, subject_id: str):
         self.subject_id = subject_id
         self.perm = get_permutation(subject_id)
-        self.win = visual.Window(color="black", fullscr=False)
+        self.win = visual.Window(color="black", fullscr=False, units='norm')
 
     def show_object(self, obj_name: str):
         """Display an image corresponding to the given object name."""
         img_path = os.path.join(os.path.dirname(__file__), "images", f"{obj_name}.png")
         if os.path.exists(img_path):
-            # Scale image to occupy 25% of window width while preserving aspect ratio
-            with Image.open(img_path) as img:
-                img_w, img_h = img.size
-            win_w, _ = self.win.size
-            target_w = win_w * 0.25
-            target_h = target_w * img_h / img_w
-            stim = visual.ImageStim(self.win, image=img_path, size=(target_w, target_h))
+            # Specify the image size in 'norm' units. (1,1) would fill a quarter of the screen.
+            stim = visual.ImageStim(self.win, image=img_path, size=(0.5, 0.5))
         else:
             # Fallback to text if the image is missing
             stim = visual.TextStim(self.win, text=obj_name, color="white", height=0.1)
