@@ -11,3 +11,6 @@ experiment/__pycache__/experiment.cpython-310.pyc
 experiment/__pycache__/__init__.cpython-38.pyc
 experiment/__pycache__/__init__.cpython-313.pyc
 experiment/__pycache__/__init__.cpython-310.pyc
+*.sublime-workspace
+*.sublime-project
+*.json
