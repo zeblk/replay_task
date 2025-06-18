@@ -1,14 +1,30 @@
-from psychopy import visual, core, event
-from PIL import Image
+from __future__ import annotations
+
 import argparse
-import random
-from itertools import compress
-import numpy as np
-from .utils import get_scrambling_rule, get_object_mapping, get_pos_and_seq, get_scrambled_pos_and_seq, ordinal_string, TRAINING_OBJECTS
-import os
-import warnings
-import pyglet
 import csv
+import os
+import random
+import warnings
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Dict
+
+import numpy as np
+import pyglet
+from psychopy import core, event, visual
+
+from .utils import (
+    TRAINING_OBJECTS,
+    get_object_mapping,
+    get_pos_and_seq,
+    get_scrambled_pos_and_seq,
+    get_scrambling_rule,
+    ordinal_string,
+)
+
+# Paths
+HERE = Path(__file__).parent
+IMAGES_DIR = HERE / "images"
 
 
 MESSAGE_DURATION = 1.0
@@ -30,12 +46,22 @@ warnings.filterwarnings(
 )
 
 
+@dataclass
 class Experiment:
-    def __init__(self, subject_id: int):
-        self.subject_id = subject_id
-        self.scrambling_rule = get_scrambling_rule(subject_id)
-        self.object_mapping = get_object_mapping(subject_id)
-        self.win = visual.Window(color="black", size=(1024,768), fullscr=False, units='norm')
+    """Interactive training experiment."""
+
+    subject_id: int
+    win: visual.Window = field(init=False)
+    behavior_file: object = field(init=False)
+    behavior_writer: csv.writer = field(init=False)
+    scrambling_rule: Dict[str, int] = field(init=False)
+    object_mapping: Dict[str, str] = field(init=False)
+    object_stims: Dict[str, visual.ImageStim] = field(init=False)
+
+    def __post_init__(self) -> None:
+        self.scrambling_rule = get_scrambling_rule(self.subject_id)
+        self.object_mapping = get_object_mapping(self.subject_id)
+        self.win = visual.Window(color="black", size=(1024, 768), fullscr=False, units="norm")
         event.globalKeys.clear()
         event.globalKeys.add(key="escape", func=self._exit)
 
@@ -61,14 +87,19 @@ class Experiment:
 
         # pre-load images
         self.object_stims = {}
-        for letter in self.object_mapping:
-            obj_name = self.object_mapping[letter]
-            img_path = os.path.join(os.path.dirname(__file__), "images", f"{obj_name}.png")
-            self.object_stims[letter] = visual.ImageStim(self.win, image=img_path)
+        for letter, obj_name in self.object_mapping.items():
+            img_path = IMAGES_DIR / f"{obj_name}.png"
+            self.object_stims[letter] = visual.ImageStim(self.win, image=str(img_path))
        
 
     def _exit(self):
-        print('Esc detected: ending experiment...')
+        print("Esc detected: ending experiment...")
+        self.close()
+        core.quit()
+        os._exit(0)
+
+    def close(self) -> None:
+        """Close open resources."""
         try:
             self.win.close()
             visual.Window._closeAllWindows()
@@ -78,8 +109,6 @@ class Experiment:
             self.behavior_file.close()
         except Exception:
             pass
-        core.quit()
-        os._exit(0)
 
     def get_object(self, obj_letter: str, size: tuple=(0.5, 0.5), pos: tuple=(0,0)):
         """Display an image corresponding to the specified object letter (W, X, Y, Z, Wp, Xp, Yp, Zp)."""
@@ -330,35 +359,20 @@ class Experiment:
             print('learning_levels: ' + str(learning_levels))
 
 
-        try:
-            self.behavior_file.close()
-        except Exception:
-            pass
-        self.win.close()
+        self.close()
         core.quit()
 
 
-parser = argparse.ArgumentParser(description="Task 2 from Liu et al (2019) cell")
-parser.add_argument("subject_id", help="Unique subject identifier")
-
-
-def main(subject_id: str):
+def main() -> None:
+    """Entry point for running the experiment."""
+    parser = argparse.ArgumentParser(description="Task 2 from Liu et al (2019) cell")
+    parser.add_argument("subject_id", type=int, help="Unique subject identifier")
     args = parser.parse_args()
 
-    try:
-        subject_id_int = int(subject_id)
-        print(subject_id_int)
-    except Exception:
-        assert False, 'ERROR: Subject ID must be an integer'
-
-    session = Experiment(subject_id_int)
+    session = Experiment(args.subject_id)
     session.run()
 
 
 
 if __name__ == "__main__":
-    import sys
-    if len(sys.argv) < 2:
-        print("Usage: python experiment.py SUBJECT_ID")
-    else:
-        main(sys.argv[1])
+    main()
