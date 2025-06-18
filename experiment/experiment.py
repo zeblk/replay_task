@@ -356,6 +356,7 @@ class Experiment:
                 if true_state_2 and learning_levels[true_state_2] > 1:
                     learning_levels[true_state_2] -= 1
 
+            current_lowest_level = min(learning_levels.values())
             print('learning_levels: ' + str(learning_levels))
 
 
