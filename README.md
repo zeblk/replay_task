@@ -11,19 +11,19 @@ rule and then rest so replay can be measured.
 
 ## Running the experiment
 
-A working [PsychoPy](https://www.psychopy.org/) installation is required.
-Install dependencies with:
+A working [PsychoPy](https://www.psychopy.org/) installation is required. We
+recommend running inside a conda environment like:
 
 ```bash
-pip install psychopy
+conda create -n psychopy-env -c conda-forge python=3.8 psychopy pyglet=1.5.27
 ```
 
 Launch the experiment with:
 
 ```bash
-python -m experiment.experiment <SESSION> <SUBJECT_ID>
+python -m experiment.experiment <SUBJECT_ID>
 ```
 
-where `SESSION` is `1` or `2` and `SUBJECT_ID` is a unique identifier for the
-participant. The permutation used to scramble the sequences is stored in
-`perm_<SUBJECT_ID>.json` and is automatically reused across sessions.
+where `SUBJECT_ID` is a unique integer identifier for the participant. 
+The scrambling rule and visual object randomizations are stored in json
+files and automatically reused if the same SUBJECT_ID is entered.
