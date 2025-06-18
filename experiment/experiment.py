@@ -201,7 +201,7 @@ class Experiment:
                 "",
                 "",
                 key,
-                chosen_seq,
+                'seq'+str(chosen_seq),
                 result,
                 rt,
             ])
