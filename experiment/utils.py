@@ -1,7 +1,30 @@
-import random
+"""Utility functions for object mappings and scrambling rules."""
+
+from __future__ import annotations
+
 import json
-import os
 import math
+import os
+from pathlib import Path
+import random
+
+
+def read_json(path: Path) -> dict:
+    """Safely read JSON data from *path*, returning an empty dict on failure."""
+    if not path.exists():
+        return {}
+    try:
+        with path.open("r") as f:
+            return json.load(f)
+    except json.JSONDecodeError:
+        return {}
+
+
+def write_json(path: Path, data: dict) -> None:
+    """Write *data* to *path* in JSON format with human readable indentation."""
+    with path.open("w") as f:
+        json.dump(data, f, indent=4)
+
 
 
 SESSION1_OBJECTS = [
@@ -37,18 +60,20 @@ TRAINING_OBJECTS = [
     "3pineapple",
 ]
 
-def get_pos_and_seq(state_name: str):
-    if 'p' in state_name:
+def get_pos_and_seq(state_name: str) -> tuple[int, int]:
+    """Return the position and sequence index for a given state."""
+    if "p" in state_name:
         seq = 2
-        poses = {'Wp': 1, 'Xp': 2, 'Yp': 3, 'Zp': 4}
+        poses = {"Wp": 1, "Xp": 2, "Yp": 3, "Zp": 4}
         pos = poses[state_name]
     else:
         seq = 1
-        poses = {'W': 1, 'X': 2, 'Y': 3, 'Z': 4}
+        poses = {"W": 1, "X": 2, "Y": 3, "Z": 4}
         pos = poses[state_name]
     return pos, seq
 
-def get_scrambled_pos_and_seq(scrambled_state: int):
+def get_scrambled_pos_and_seq(scrambled_state: int) -> tuple[int, int]:
+    """Return the position and sequence for a scrambled state index."""
     pos = (scrambled_state % 4) + 1
     seq = math.floor(scrambled_state / 4) + 1
     return pos, seq
@@ -79,17 +104,8 @@ def get_scrambling_rule(subject_id: int):
     file or creating a new one if needed.
     """
     # All rules are stored in a single file.
-    fname = "scrambling_rules.json"
-    all_rules = {}
-
-    # Load the central database of rules if it exists.
-    if os.path.exists(fname):
-        with open(fname, "r") as f:
-            # Handle case where the file might be empty.
-            try:
-                all_rules = json.load(f)
-            except json.JSONDecodeError:
-                all_rules = {}
+    fname = Path("scrambling_rules.json")
+    all_rules = read_json(fname)
 
     # Convert integer ID to a string for human readability of the JSON file.
     subject_str = 'subject_' + str(subject_id)
@@ -122,31 +138,20 @@ def get_scrambling_rule(subject_id: int):
 
     # Add the newly created rule to our collection and save it.
     all_rules[subject_str] = new_rule
-    with open(fname, "w") as f:
-        # Use indent for better human readability of the JSON file.
-        json.dump(all_rules, f, indent=4)
+    write_json(fname, all_rules)
         
     return new_rule
 
 
 
-def get_object_mapping(subject_id: int):
+def get_object_mapping(subject_id: int) -> dict:
     """
     Return the randomized state-to-image mapping for the subject, retrieving it from a central
     file or creating a new one if needed.
     """
     # All mappings are stored in a single file.
-    fname = "object_mappings.json"
-    all_mappings = {}
-
-    # Load the central database of mappings if it exists.
-    if os.path.exists(fname):
-        with open(fname, "r") as f:
-            # Handle case where the file might be empty.
-            try:
-                all_mappings = json.load(f)
-            except json.JSONDecodeError:
-                all_mappings = {}
+    fname = Path("object_mappings.json")
+    all_mappings = read_json(fname)
 
     # Convert integer ID to a string for human readability of the JSON file.
     subject_str = 'subject_' + str(subject_id)
@@ -162,9 +167,7 @@ def get_object_mapping(subject_id: int):
 
     # Add the newly created rule to our collection and save it.
     all_mappings[subject_str] = new_mapping
-    with open(fname, "w") as f:
-        # Use indent for better human readability of the JSON file.
-        json.dump(all_mappings, f, indent=4)
+    write_json(fname, all_mappings)
         
     return new_mapping
 
