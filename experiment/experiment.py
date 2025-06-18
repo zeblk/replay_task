@@ -8,6 +8,7 @@ from .utils import get_scrambling_rule, get_object_mapping, get_pos_and_seq, get
 import os
 import warnings
 import pyglet
+import csv
 
 
 MESSAGE_DURATION = 1.0
@@ -38,6 +39,26 @@ class Experiment:
         event.globalKeys.clear()
         event.globalKeys.add(key="escape", func=self._exit)
 
+        # open behavioral data file
+        self.behavior_filename = f"subject_{self.subject_id}_behavioral.csv"
+        new_file = not os.path.exists(self.behavior_filename)
+        self.behavior_file = open(self.behavior_filename, "a", newline="")
+        self.behavior_writer = csv.writer(self.behavior_file)
+        if new_file:
+            self.behavior_writer.writerow([
+                "quiz_type",
+                "stimulus1_true",
+                "stimulus1_object",
+                "stimulus2_true",
+                "stimulus2_object",
+                "position1",
+                "position2",
+                "key_pressed",
+                "choice",
+                "correct",
+                "reaction_time",
+            ])
+
         # pre-load images
         self.object_stims = {}
         for letter in self.object_mapping:
@@ -51,6 +72,10 @@ class Experiment:
         try:
             self.win.close()
             visual.Window._closeAllWindows()
+        except Exception:
+            pass
+        try:
+            self.behavior_file.close()
         except Exception:
             pass
         core.quit()
@@ -153,18 +178,36 @@ class Experiment:
             visual.TextStim(self.win, text='(Press left)', height=0.07, pos=(-.5,-.6)).draw()
             visual.TextStim(self.win, text='(Press right)', height=0.07, pos=(.5,-.6)).draw()
             self.win.flip()
-
-            keys = event.waitKeys(keyList=['left', 'right', 'escape'])
-            if ((keys[0] == 'left') and (true_seq == 1)) or ((keys[0] == 'right') and (true_seq == 2)):
-                visual.TextStim(self.win, text='Correct!', height=0.1, pos=(0,0)).draw()
-                return 'correct'
+            clock = core.Clock()
+            key_data = event.waitKeys(keyList=["left", "right", "escape"], timeStamped=clock)
+            key, rt = key_data[0]
+            chosen_seq = 1 if key == "left" else 2
+            correct_bool = ((key == "left") and (true_seq == 1)) or ((key == "right") and (true_seq == 2))
+            if correct_bool:
+                visual.TextStim(self.win, text="Correct!", height=0.1, pos=(0,0)).draw()
+                result = "correct"
             else:
                 s_pos, s_seq = get_scrambled_pos_and_seq(self.scrambling_rule[true_state])
-                visual.TextStim(self.win, text='Incorrect. Remember:', height=0.1, pos=(0,0.3)).draw()
-                visual.TextStim(self.win, text='The ' + ordinal_string(s_pos) + ' picture of the ' + ordinal_string(s_seq) + ' scrambled sequence ' \
-                    'becomes the ' + ordinal_string(true_pos) + ' picture of the **' + ordinal_string(true_seq)  + \
-                    ' true sequence**.', height=0.1, pos=(0,-.2)).draw()
-                return 'incorrect'
+                visual.TextStim(self.win, text="Incorrect. Remember:", height=0.1, pos=(0,0.3)).draw()
+                visual.TextStim(self.win, text="The " + ordinal_string(s_pos) + " picture of the " + ordinal_string(s_seq) + " scrambled sequence "
+                    + "becomes the " + ordinal_string(true_pos) + " picture of the **" + ordinal_string(true_seq)  + " true sequence**.", height=0.1, pos=(0,-.2)).draw()
+                result = "incorrect"
+            self.behavior_writer.writerow([
+                "sequence",
+                true_state,
+                picture_name,
+                "",
+                "",
+                "",
+                "",
+                key,
+                chosen_seq,
+                result,
+                rt,
+            ])
+            self.behavior_file.flush()
+            return result
+
 
         def order_quiz_screen(true_state_1: str, true_state_2: str):
             true_pos_1, true_seq_1 = get_pos_and_seq(true_state_1)
@@ -180,23 +223,43 @@ class Experiment:
             visual.TextStim(self.win, text='(Press left)', height=0.07, pos=(-.5,-.7)).draw()
             visual.TextStim(self.win, text='(Press right)', height=0.07, pos=(.5,-.7)).draw()
             self.win.flip()
-
-            keys = event.waitKeys(keyList=['left', 'right', 'escape'])
+            clock = core.Clock()
+            key_data = event.waitKeys(keyList=["left", "right", "escape"], timeStamped=clock)
+            key, rt = key_data[0]
+            chosen_state = true_state_1 if key == "left" else true_state_2
+            chosen_obj = self.object_mapping[chosen_state][1:]
             first_on_left = true_pos_1 < true_pos_2
-            if ((keys[0] == 'left') and (not first_on_left)) or ((keys[0] == 'right') and first_on_left):
-                visual.TextStim(self.win, text='Correct!', height=0.1, pos=(0,0)).draw()
-                return 'correct'
+            correct_bool = ((key == "left") and (not first_on_left)) or ((key == "right") and first_on_left)
+            if correct_bool:
+                visual.TextStim(self.win, text="Correct!", height=0.1, pos=(0,0)).draw()
+                result = "correct"
             else:
-                visual.TextStim(self.win, text='Incorrect. Remember:', height=0.1, pos=(0,0.6)).draw()
+                visual.TextStim(self.win, text="Incorrect. Remember:", height=0.1, pos=(0,0.6)).draw()
                 s_pos, s_seq = get_scrambled_pos_and_seq(self.scrambling_rule[true_state_1])
-                visual.TextStim(self.win, text='The ' + ordinal_string(s_pos) + ' picture in the ' + ordinal_string(s_seq) + \
-                    ' scrambled sequence becomes the ' + ordinal_string(true_pos_1) + \
-                    ' picture of the ' + ordinal_string(true_seq_1)  + ' true sequence.', height=0.1, pos=(0,.2)).draw()
+                visual.TextStim(self.win, text="The " + ordinal_string(s_pos) + " picture in the " + ordinal_string(s_seq) + 
+                    " scrambled sequence becomes the " + ordinal_string(true_pos_1) + 
+                    " picture of the " + ordinal_string(true_seq_1)  + " true sequence.", height=0.1, pos=(0,.2)).draw()
                 s_pos_2, s_seq_2 = get_scrambled_pos_and_seq(self.scrambling_rule[true_state_2])
-                visual.TextStim(self.win, text='The ' + ordinal_string(s_pos_2) + ' picture in the ' + ordinal_string(s_seq_2) + \
-                    ' scrambled sequence becomes the ' + ordinal_string(true_pos_2) + \
-                    ' picture of the ' + ordinal_string(true_seq_2)  + ' true sequence.', height=0.1, pos=(0,-.3)).draw()  
-                return 'incorrect'
+                visual.TextStim(self.win, text="The " + ordinal_string(s_pos_2) + " picture in the " + ordinal_string(s_seq_2) + 
+                    " scrambled sequence becomes the " + ordinal_string(true_pos_2) + 
+                    " picture of the " + ordinal_string(true_seq_2)  + " true sequence.", height=0.1, pos=(0,-.3)).draw()
+                result = "incorrect"
+            self.behavior_writer.writerow([
+                "order",
+                true_state_1,
+                self.object_mapping[true_state_1][1:],
+                true_state_2,
+                self.object_mapping[true_state_2][1:],
+                "left",
+                "right",
+                key,
+                chosen_state,
+                result,
+                rt,
+            ])
+            self.behavior_file.flush()
+            return result
+
 
         ####################### Do the intro
 
@@ -267,6 +330,10 @@ class Experiment:
             print('learning_levels: ' + str(learning_levels))
 
 
+        try:
+            self.behavior_file.close()
+        except Exception:
+            pass
         self.win.close()
         core.quit()
 
