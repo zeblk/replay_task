@@ -128,11 +128,11 @@ class Experiment:
         def left_right_msg(available_keys: list):
             """ Draw left/right navigation instructions for participants """
             if 'left' in available_keys:
-                visual.TextStim(self.win, text='←left', color='white', height=0.05, pos=(-.9,-.9)).draw()
+                visual.TextStim(self.win, text='< left', color='white', height=0.05, pos=(-.9,-.9)).draw()
             if 'space' in available_keys:
                 visual.TextStim(self.win, text='space to continue', color='white', height=0.05, pos=(0,-.9)).draw()
             if 'right' in available_keys:
-                visual.TextStim(self.win, text='right→', color='white', height=0.05, pos=(.9,-.9)).draw()
+                visual.TextStim(self.win, text='right >', color='white', height=0.05, pos=(.9,-.9)).draw()
             self.win.flip()
             keys = event.waitKeys(keyList=available_keys + ['escape'])
             return keys
