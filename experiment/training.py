@@ -6,6 +6,7 @@ import os
 import random
 import warnings
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Dict
 
@@ -29,10 +30,10 @@ IMAGES_DIR = HERE / "images"
 
 MESSAGE_DURATION = 1.0
 SCRAMBLED_REPEATS = 5
-OBJECT_DURATION = 0.5
+OBJECT_DURATION = 0.1
 REST_DURATION = 1.0
 N_OBJECTS = 8
-ISI = 0.5
+ISI = 0.1
 ITI = 1.5
 
 true_state_names = ['W', 'X', 'Y', 'Z', 'Wp', 'Xp', 'Yp', 'Zp']
@@ -47,8 +48,10 @@ warnings.filterwarnings(
 
 
 @dataclass
-class Experiment:
-    """Interactive training experiment."""
+class Training:
+    """
+    Teaches participants the unscrambling rule before beginning Structure Learning.
+    """
 
     subject_id: int
     win: visual.Window = field(init=False)
@@ -60,30 +63,29 @@ class Experiment:
 
     def __post_init__(self) -> None:
         self.scrambling_rule = get_scrambling_rule(self.subject_id)
-        self.object_mapping = get_object_mapping(self.subject_id)
+        self.object_mapping = get_object_mapping(self.subject_id, 'training')
         self.win = visual.Window(color="black", size=(1024, 768), fullscr=False, units="norm")
         event.globalKeys.clear()
         event.globalKeys.add(key="escape", func=self._exit)
 
         # open behavioral data file
-        self.behavior_filename = f"subject_{self.subject_id}_behavioral.csv"
-        new_file = not os.path.exists(self.behavior_filename)
-        self.behavior_file = open(self.behavior_filename, "a", newline="")
+        os.makedirs('behavior_data', exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_name = f"subject_{self.subject_id}_training_behavior_{timestamp}.csv"
+        self.behavior_filename = os.path.join('behavior_data', file_name)
+        self.behavior_file = open(self.behavior_filename, "w", newline="")
         self.behavior_writer = csv.writer(self.behavior_file)
-        if new_file:
-            self.behavior_writer.writerow([
-                "quiz_type",
-                "stimulus1_true",
-                "stimulus1_object",
-                "stimulus2_true",
-                "stimulus2_object",
-                "position1",
-                "position2",
-                "key_pressed",
-                "choice",
-                "correct",
-                "reaction_time",
-            ])
+        self.behavior_writer.writerow([
+            "quiz_type",
+            "left_stimulus_true_state",
+            "left_stimulus_picture",
+            "right_stimulus_true_state",
+            "right_stimulus_picture",
+            "key_pressed",
+            "choice",
+            "correctness",
+            "reaction_time",
+        ])
 
         # pre-load images
         self.object_stims = {}
@@ -178,20 +180,20 @@ class Experiment:
                 state_name = self.reverse_state_lookup(scrambled_position)
                 self.get_object(state_name, size=(0.5,0.5), pos=(0,0)).draw()
                 self.win.flip()
-                core.wait(1.0)
+                core.wait(OBJECT_DURATION)
 
             self.win.flip()
-            core.wait(1.0)
+            core.wait(ISI)
 
             for scrambled_position in [4, 5, 6, 7]:
                 visual.TextStim(self.win, text='Scrambled sequence 2', height=0.1, pos=(0,0.5)).draw()
                 state_name = self.reverse_state_lookup(scrambled_position)
                 self.get_object(state_name, size=(0.5,0.5), pos=(0,0)).draw()
                 self.win.flip()
-                core.wait(1.0)
+                core.wait(OBJECT_DURATION)
             
             self.win.flip()
-            core.wait(1.0)
+            core.wait(ISI)
 
         def seq_quiz_screen(true_state: str):
             picture_name = self.object_mapping[true_state][1:]
@@ -227,8 +229,6 @@ class Experiment:
                 picture_name,
                 "",
                 "",
-                "",
-                "",
                 key,
                 'seq'+str(chosen_seq),
                 result,
@@ -241,7 +241,7 @@ class Experiment:
         def order_quiz_screen(true_state_1: str, true_state_2: str):
             true_pos_1, true_seq_1 = get_pos_and_seq(true_state_1)
             true_pos_2, true_seq_2 = get_pos_and_seq(true_state_2)
-            assert(true_seq_1==true_seq_2) # We only compare order within one true sequence
+            assert true_seq_1==true_seq_2, 'ERROR: Can only compare order within one true sequence'
 
             visual.TextStim(self.win, text='Which comes later in the ' + ordinal_string(true_seq_1) + ' true sequence?', 
                             height=0.1, pos=(0,.4)).draw()
@@ -279,8 +279,6 @@ class Experiment:
                 self.object_mapping[true_state_1][1:],
                 true_state_2,
                 self.object_mapping[true_state_2][1:],
-                "left",
-                "right",
                 key,
                 chosen_state,
                 result,
@@ -341,7 +339,7 @@ class Experiment:
             # If there's another state above level-0 in this sequence, then also do a 'which comes first' quiz.
             quiz_result_2 = 'correct'
             true_state_2 = None
-            states_in_same_seq = [s for s in states_above_level(learning_levels, 0) if seq==get_pos_and_seq(s)[1]]
+            states_in_same_seq = [s for s in states_above_level(learning_levels, 0) if (seq==get_pos_and_seq(s)[1] and s != true_state)]
             if states_in_same_seq:
                 true_state_2 = random.choice(states_in_same_seq)
                 quiz_result_2 = order_quiz_screen(true_state_1=true_state,true_state_2=true_state_2)
@@ -359,6 +357,10 @@ class Experiment:
             current_lowest_level = min(learning_levels.values())
             print('learning_levels: ' + str(learning_levels))
 
+        visual.TextStim(self.win, text="All done. Great job.", height=0.1, pos=(0,0.0)).draw()
+        visual.TextStim(self.win, text="Press space to exit", height=0.07, pos=(0,-0.5)).draw()
+        self.win.flip()
+        event.waitKeys(keyList=['space'])
 
         self.close()
         core.quit()
@@ -370,7 +372,7 @@ def main() -> None:
     parser.add_argument("subject_id", type=int, help="Unique subject identifier")
     args = parser.parse_args()
 
-    session = Experiment(args.subject_id)
+    session = Training(args.subject_id)
     session.run()
 
 

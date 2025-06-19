@@ -78,6 +78,13 @@ def get_scrambled_pos_and_seq(scrambled_state: int) -> tuple[int, int]:
     seq = math.floor(scrambled_state / 4) + 1
     return pos, seq
 
+def pos_and_seq_to_state(pos: int, seq: int) -> str:
+    if seq == 1:
+        return ['W','X','Y','Z'][pos-1]
+    elif seq == 2:
+        return ['Wp','Xp','Yp','Zp'][pos-1]
+    else:
+        raise Exception('sequence must be 1 or 2')
 
 def ordinal_string(n: int) -> str:
     """ Convert an integer to its ordinal representation as a string. """
@@ -144,7 +151,7 @@ def get_scrambling_rule(subject_id: int):
 
 
 
-def get_object_mapping(subject_id: int) -> dict:
+def get_object_mapping(subject_id: int, phase: str) -> dict:
     """
     Return the randomized state-to-image mapping for the subject, retrieving it from a central
     file or creating a new one if needed.
@@ -156,17 +163,30 @@ def get_object_mapping(subject_id: int) -> dict:
     # Convert integer ID to a string for human readability of the JSON file.
     subject_str = 'subject_' + str(subject_id)
 
-    # If the mapping for this subject already exists, return it.
+    # If the mapping for this subject and phase already exists, return it.
     if subject_str in all_mappings:
-        return all_mappings[subject_str]
+        if phase in all_mappings[subject_str]:
+            return all_mappings[subject_str][phase]
 
     # Otherwise, create a new mapping because one doesn't exist for this subject.
     list_of_letters = ['W', 'X', 'Y', 'Z', 'Wp', 'Xp', 'Yp', 'Zp']
-    list_of_images = random.sample(SESSION1_OBJECTS, len(SESSION1_OBJECTS))
+    
+    if phase == 'training':
+        list_of_images = random.sample(TRAINING_OBJECTS, len(TRAINING_OBJECTS))
+    elif phase == 'structure_learning':
+        list_of_images = random.sample(SESSION1_OBJECTS, len(SESSION1_OBJECTS))
+    elif phase == 'applied_learning':
+        list_of_images = random.sample(SESSION2_OBJECTS, len(SESSION2_OBJECTS))
+
     new_mapping = dict(zip(list_of_letters, list_of_images))
 
+    # Add this subject to the mappings if not already present
+    if subject_str not in all_mappings:
+        all_mappings[subject_str] = dict()
+
     # Add the newly created rule to our collection and save it.
-    all_mappings[subject_str] = new_mapping
+    all_mappings[subject_str][phase] = new_mapping
+
     write_json(fname, all_mappings)
         
     return new_mapping
