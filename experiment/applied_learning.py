@@ -30,12 +30,15 @@ IMAGES_DIR = HERE / "images"
 
 MESSAGE_DURATION = 1.0
 SCRAMBLED_REPEATS = 5
-OBJECT_DURATION = 1.0
+OBJECT_DURATION = 0.9
 REST_DURATION = 1.0
 N_OBJECTS = 8
-ISI = 0.5
+ISI = 0.9
 ITI = 1.5
-N_RUNS = 4
+N_RUNS = 3
+N_REPEATS = 3
+PROBE_ALONE_DURATION = 5
+CHOICE_DURATION = 0.6
 
 true_state_names = ['W', 'X', 'Y', 'Z', 'Wp', 'Xp', 'Yp', 'Zp']
 scrambled_positions = [0, 1, 2, 3, 4, 5, 6, 7]
@@ -49,20 +52,17 @@ warnings.filterwarnings(
 
 
 @dataclass
-class StructureLearning:
-    """Structure Learning (Day 1) task from Liu et al (2019).
-    Participants undergo four runs of training. Each run consists of showing both scrambled sequences three times.
-    Each stimulus is onscreen for 1000 ms, with 500 ms between stimuli, and an extra 1000 ms of blank screen between sequences.
-    After each run, participants are probed about the true (unscrambled) order.
-    On each probe trial, the probe stimulus is presented in the center of the screen, and two other stimuli are presented below. 
-    One of the two lower stimuli is selected from later in the same true sequence as the probe.
-    The other lower stimulus is randomly selected either from earlier in the same true sequence as the probe,
-    or from any position in the other true sequence. 
-    Participants are asked to press the button (left or right) corresponding to the stimulus that is later
-    in the same true sequence as the probe.
-    For example, if X is the probe stimulus, and the two choice options are W and Z, then the correct answer is Z. 
-    There are five probe questions at the end of each run.
-    No feedback is given during probe trials. However, at the end of each run, participants are shown their average accuracy for that run.
+class AppliedLearning:
+    """Applied Learning (Day 2) task from Liu et al (2019).
+    There were three runs of Applied Learning.
+    There were two phases in each run.
+    Each phase comprised four images with each stimulus presented for 900 ms, followed by an inter-stimulus interval (ISI) of 900 ms. 
+    Each phase was repeated three times, then followed by the next phase.
+    Each run was followed by multiple choice questions without feedback.
+    The probe stimulus appeared alone for 5 s, and then the two candidate successor images appeared.
+    One image came from later in the same sequence as the probe.
+    The other was preceding in the same sequence with 33% probability; and from the other sequence with 66% probability.
+    Participants had 600 ms to make a choice.
     """
 
     subject_id: int
@@ -75,7 +75,7 @@ class StructureLearning:
 
     def __post_init__(self) -> None:
         self.scrambling_rule = get_scrambling_rule(self.subject_id)
-        self.object_mapping = get_object_mapping(self.subject_id, 'structure_learning')
+        self.object_mapping = get_object_mapping(self.subject_id, 'applied_learning')
         self.win = visual.Window(color="black", size=(1024, 768), fullscr=False, units="norm")
         event.globalKeys.clear()
         event.globalKeys.add(key="escape", func=self._exit)
@@ -83,7 +83,7 @@ class StructureLearning:
         # open behavioral data file
         os.makedirs('behavior_data', exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        file_name = f"subject_{self.subject_id}_structure_learning_behavior_{timestamp}.csv"
+        file_name = f"subject_{self.subject_id}_applied_learning_behavior_{timestamp}.csv"
         self.behavior_filename = os.path.join('behavior_data', file_name)
         self.behavior_file = open(self.behavior_filename, "w", newline="")
 
@@ -141,42 +141,6 @@ class StructureLearning:
 
     def run(self):
         
-        def left_right_msg(available_keys: list):
-            """ Draw left/right navigation instructions for participants """
-            if 'left' in available_keys:
-                visual.TextStim(self.win, text='< left', color='white', height=0.05, pos=(-.9,-.9)).draw()
-            if 'space' in available_keys:
-                visual.TextStim(self.win, text='space to continue', color='white', height=0.05, pos=(0,-.9)).draw()
-            if 'right' in available_keys:
-                visual.TextStim(self.win, text='right >', color='white', height=0.05, pos=(.9,-.9)).draw()
-            self.win.flip()
-            keys = event.waitKeys(keyList=available_keys + ['escape'])
-            return keys
-
-        def screen1():
-            visual.TextStim(self.win, text='Now, you will apply the rule you learned to unscramble a new set of pictures.', height=0.1, pos=(0,0)).draw()
-
-        def screen2():
-            visual.TextStim(self.win, text='You will see the 1st scrambled sequence three times in a row.', height=0.1, pos=(0,.7)).draw()
-            visual.TextStim(self.win, text='Then you will see the 2nd scrambled sequence three times in a row.', height=0.1, pos=(0,.3)).draw()
-            visual.TextStim(self.win, text='Finally, we will ask quiz questions about the true (unscrambled) order.', height=0.1, pos=(0,-.1)).draw()
-            visual.TextStim(self.win, text='This process will repeat four times.', height=0.1, pos=(0,-.7)).draw()
-            
-        def screen3():
-            visual.TextStim(self.win, text='Each quiz question will show one picture at the top, and ' + \
-                'two pictures below, like this.', height=0.1, pos=(0,.0)).draw()
-            self.get_object(self.reverse_state_lookup(0), size=(0.5,0.5), pos=(0,.5)).draw()
-            self.get_object(self.reverse_state_lookup(1), size=(0.3,0.3), pos=(-.5,-.5)).draw()
-            self.get_object(self.reverse_state_lookup(2), size=(0.3,0.3), pos=(.5,-.5)).draw()
-            
-        def screen4():
-            visual.TextStim(self.win, text='You can choose one of the two pictures below.', height=0.08, pos=(0,.15)).draw()
-            visual.TextStim(self.win, text='The correct choice is the picture that is *later in the same true sequence* ' + \
-                'as the picture on top.', height=0.08, pos=(0,-.17)).draw()
-            self.get_object(self.reverse_state_lookup(0), size=(0.5,0.5), pos=(0,.5)).draw()
-            self.get_object(self.reverse_state_lookup(1), size=(0.3,0.3), pos=(-.5,-.5)).draw()
-            self.get_object(self.reverse_state_lookup(2), size=(0.3,0.3), pos=(.5,-.5)).draw()
-
         def scrambled_sequences_screen(which_seq: int):
             if which_seq == 1:
                 sp_list = [0, 1, 2, 3]
@@ -198,7 +162,6 @@ class StructureLearning:
             self.win.flip()
             core.wait(ITI)
 
-
         def quiz_screen():
 
             # Select the probe state
@@ -211,7 +174,7 @@ class StructureLearning:
             correct_pos = random.choice(range(prob_pos+1,5))
             correct_state = pos_and_seq_to_state(pos=correct_pos, seq=correct_seq)
 
-            # Select the incorrect choice option
+            # Select the incorrect choice option  (TODO: make sure it's 33% prob of being from the same sequence)
             if prob_pos == 1:
                 # if the probe is at the first position, then the incorrect choice must be from the other sequence
                 incorrect_seq = 3-prob_seq
@@ -232,24 +195,41 @@ class StructureLearning:
             correct_on_left = random.choice([True,False])
 
             # Draw the question
-            visual.TextStim(self.win, text='Which comes later in the same true sequence?', 
-                            height=0.07, pos=(0,-.2)).draw()
+            visual.TextStim(self.win, text='When the options appear, choose the one that comes later in the same true sequence.', 
+                            height=0.07, pos=(0,0)).draw()
 
             # Draw the probe stimulus
             self.get_object(probe_state, size=(0.5,0.5), pos=(0,.5)).draw()
 
+            # Present the probe stimulus alone for a long duration
+            self.win.flip()
+            core.wait(PROBE_ALONE_DURATION)
+
             # Draw the two choices
-            self.get_object(correct_state, size=(0.3,0.3), pos=(-(2*int(correct_on_left)-1)*.5,-.5)).draw()
-            self.get_object(incorrect_state, size=(0.3,0.3), pos=((2*int(correct_on_left)-1)*.5,-.5)).draw()
-            visual.TextStim(self.win, text='(Press left)', height=0.07, pos=(-.5,-.68)).draw()
-            visual.TextStim(self.win, text='(Press right)', height=0.07, pos=(.5,-.68)).draw()
+            self.get_object(correct_state, size=(0.5,0.5), pos=(-(2*int(correct_on_left)-1)*.5,0)).draw()
+            self.get_object(incorrect_state, size=(0.5,0.5), pos=((2*int(correct_on_left)-1)*.5,0)).draw()
+            visual.TextStim(self.win, text='(Press left)', height=0.07, pos=(-.5,-.5)).draw()
+            visual.TextStim(self.win, text='(Press right)', height=0.07, pos=(.5,-.5)).draw()
             self.win.flip()
             clock = core.Clock()
-            key_data = event.waitKeys(keyList=["left", "right", "escape"], timeStamped=clock)
-            key, rt = key_data[0]
-            sj_correctness = ((key == "left") and correct_on_left) or ((key == "right") and (not correct_on_left))
-            chosen_state = correct_state if (key == "left" and correct_on_left or key=="right" and not correct_on_left) else incorrect_state
-            chosen_obj = self.object_mapping[chosen_state][1:]
+            key_data = event.waitKeys(maxWait=CHOICE_DURATION, keyList=["left", "right", "escape"], timeStamped=clock)
+
+            if not key_data:
+                # Subject timed out
+                key = None
+                rt = None
+                sj_correctness = None
+                chosen_state = None
+                chosen_obj = None
+
+                visual.TextStim(self.win, text='Too slow. Respond faster.', height=0.1, pos=(0,0)).draw()
+                self.win.flip()
+                core.wait(2.0)
+            else:
+                key, rt = key_data[0]
+                sj_correctness = ((key == "left") and correct_on_left) or ((key == "right") and (not correct_on_left))
+                chosen_state = correct_state if (key == "left" and correct_on_left or key=="right" and not correct_on_left) else incorrect_state
+                chosen_obj = self.object_mapping[chosen_state][1:]
 
             # Record data to behavior file
             self.behavior_writer.writerow([
@@ -268,43 +248,29 @@ class StructureLearning:
             self.behavior_file.flush()
 
 
-        ####################### Do the intro
+        ####################### Do the applied learning task
+        visual.TextStim(self.win, text='Now you will see today\'s stimuli in their scrambled order.', height=0.1, pos=(0,.15)).draw()
+        visual.TextStim(self.win, text='Press space when ready.', height=0.1, pos=(0,-.15)).draw()
+        self.win.flip()
+        event.waitKeys(keyList=['space'])
 
-        intro_screens = [screen1, screen2, screen3, screen4]
-        available_keys = [['right'], ['left','right'], ['left','right'], ['left', 'space']]
-        screen_ix = 0
-        done = False
-        while not done:
-            # Draw the current screen
-            intro_screens[screen_ix]()
-            keys = left_right_msg(available_keys[screen_ix])
-            
-            if keys[0] == 'left':
-                screen_ix -= 1
-            elif keys[0] == 'space':
-                done = True
-            elif keys[0] == 'right':
-                screen_ix += 1
-            screen_ix = np.maximum(np.minimum(screen_ix, len(intro_screens)-1), 0)
-
-        ####################### Do the structure learning task
-
-        # Loop through the runs
+        # Do four runs
         for run in range(N_RUNS):
-            for repeat in range(3):
+            # Phase 1
+            for repeat in range(N_REPEATS):
                 visual.TextStim(self.win, text='Press space when you\'re ready to see the 1st scrambled sequence.', 
                                 height=0.1, pos=(0,0)).draw()
                 self.win.flip()
                 event.waitKeys(keyList=["space"])
                 scrambled_sequences_screen(which_seq = 1)
 
-            for repeat in range(3):
+            # Phase 2
+            for repeat in range(N_REPEATS):
                 visual.TextStim(self.win, text='Press space when you\'re ready to see the 2nd scrambled sequence.', 
                                 height=0.1, pos=(0,0)).draw()
                 self.win.flip()
                 event.waitKeys(keyList=["space"])
                 scrambled_sequences_screen(which_seq = 2)
-
 
             for probe_ix in range(10):
                 quiz_screen()
@@ -326,7 +292,7 @@ def main() -> None:
     parser.add_argument("subject_id", type=int, help="Unique subject identifier")
     args = parser.parse_args()
 
-    session = StructureLearning(args.subject_id)
+    session = AppliedLearning(args.subject_id)
     session.run()
 
 
