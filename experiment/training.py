@@ -142,37 +142,100 @@ class Training:
         def screen1():
             visual.TextStim(self.win, text='Today\'s goal is to learn a rule that will unscramble two sequences of pictures.', height=0.1, pos=(0,0)).draw()
 
+            return ['right']
+
         def screen2():
-            visual.TextStim(self.win, text='Tomorrow, you will apply the same rule to unscramble two *new* sequences of pictures.', height=0.1, pos=(0,.5)).draw()
-            visual.TextStim(self.win, text='You earn money by applying today\'s rule to tomorrow\'s pictures.', height=0.1, pos=(0,.05)).draw()
-            visual.TextStim(self.win, text='So it\'s really important to learn the rule today.', height=0.1, pos=(0,-.35)).draw()
+            visual.TextStim(self.win, text='You will see two scrambled sequences like this...', height=0.1, pos=(0,0)).draw()
+            
+            return ['left','right']
 
         def screen3():
-            visual.TextStim(self.win, text='You will see two scrambled sequences like this...', height=0.1, pos=(0,0)).draw()
-            self.win.flip()
-            core.wait(MESSAGE_DURATION)
-            
             scrambled_sequences_screen()
             
-            self.win.flip()
-            visual.TextStim(self.win, text='Then you will have to answer questions, like: does ' + self.object_mapping['W'][1:] + \
-                ' come before or after ' + self.object_mapping['X'][1:] + '?', height=0.1, pos=(0,.6)).draw()
-            visual.TextStim(self.win, text='But crucially, the questions will be about the *unscrambled* order, not the order you saw.', height=0.1, pos=(0,0)).draw()
-            visual.TextStim(self.win, text='So you\'ll have to mentally reorder the sequences to answer these questions.', height=0.1, pos=(0,-.5)).draw()
+            return ['left','right']
 
         def screen4():
-            visual.TextStim(self.win, text='Remember: tomorrow, the *rule* for reordering the pictures will be the same, but the pictures themselves will be completely new.', height=0.1, pos=(0,0)).draw()
+           
+            visual.TextStim(self.win, text='Then you will have to answer questions, like: does ' + self.object_mapping['W'][1:] + \
+                ' come before or after ' + self.object_mapping['X'][1:] + '?', height=0.1, pos=(0,.6)).draw()
+            visual.TextStim(self.win, text='**But the questions will be about the unscrambled order, not the order you saw.**', height=0.1, pos=(0,0)).draw()
+            visual.TextStim(self.win, text='So you\'ll have to mentally reorder the sequences to answer these questions.', height=0.1, pos=(0,-.5)).draw()
 
+            return ['left','right']
+
+        def screen5():
+            visual.TextStim(self.win, text='**Here is the rule**', height=0.12, pos=(0,.7)).draw()
+
+            name_mapping = {'W': 'A', 'X': 'B', 'Y': 'C', 'Z': 'D', 'Wp': '1', 'Xp': '2', 'Yp': '3', 'Zp': '4'}
+            ss_1 = "-".join([name_mapping[self.reverse_state_lookup(i)] for i in range(4)])
+            ss_2 = "-".join([name_mapping[self.reverse_state_lookup(i)] for i in range(4,8)])
+
+            visual.TextStim(self.win, text='Scrambled sequence 1: ', height=0.1, pos=(0,.5)).draw()
+            visual.TextStim(self.win, text=ss_1, height=0.12, pos=(0,.4)).draw()
+            visual.TextStim(self.win, text='Scrambled sequence 2: ', height=0.1, pos=(0,.2)).draw()
+            visual.TextStim(self.win, text=ss_2, height=0.12, pos=(0,.1)).draw()
+
+            visual.TextStim(self.win, text='True sequence 1: ', height=0.1, pos=(0,-.1)).draw()
+            visual.TextStim(self.win, text='A-B-C-D', height=0.12, pos=(0,-.2)).draw()
+            visual.TextStim(self.win, text='True sequence 2: ', height=0.1, pos=(0,-.4)).draw()
+            visual.TextStim(self.win, text='1-2-3-4', height=0.12, pos=(0,-.5)).draw()
+
+            return ['left','right']
+
+        def screen6():
+            visual.TextStim(self.win, text='Tomorrow, you will apply the same rule to unscramble two *new* sequences of pictures.', height=0.1, pos=(0,.5)).draw()
+            visual.TextStim(self.win, text='You earn money by applying today\'s rule to tomorrow\'s pictures.', height=0.1, pos=(0,.05)).draw()
+            visual.TextStim(self.win, text='So it\'s really important to *learn the rule* today.', height=0.1, pos=(0,-.35)).draw()
+
+            return ['left', 'space']
         
         def rule_screen(true_state: str):
-            visual.TextStim(self.win, text='Here is part of the rule:', height=0.1, pos=(0,.6)).draw()
+            name_mapping = {'W': 'A', 'X': 'B', 'Y': 'C', 'Z': 'D', 'Wp': '1', 'Xp': '2', 'Yp': '3', 'Zp': '4'}
+            ss_1 = [name_mapping[self.reverse_state_lookup(i)] for i in range(4)]
+            ss_2 = [name_mapping[self.reverse_state_lookup(i)] for i in range(4,8)]
+
+            visual.TextStim(self.win, text='Scrambled sequence 1: ', height=0.07, pos=(-.67,.8)).draw()
+            for i, s in enumerate(ss_1):
+                visual.TextStim(self.win, text=s, height=0.12, pos=(-.32 + i*0.09,.8)).draw()
+            for i in range(3):
+                visual.TextStim(self.win, text='-', height=0.12, pos=(-.28 + i*0.09,.8)).draw()
+
+            visual.TextStim(self.win, text='Scrambled sequence 2: ', height=0.07, pos=(-.67,.65)).draw()
+            for i, s in enumerate(ss_2):
+                visual.TextStim(self.win, text=s, height=0.12, pos=(-.32 + i*0.09,.65)).draw()
+            for i in range(3):
+                visual.TextStim(self.win, text='-', height=0.12, pos=(-.28 + i*0.09,.65)).draw()
+
+            visual.TextStim(self.win, text='True sequence 1: ', height=0.07, pos=(.37,.8)).draw()
+            for i, s in enumerate(['A','B','C','D']):
+                visual.TextStim(self.win, text=s, height=0.12, pos=(.62 + i*0.09,.8)).draw()
+            for i in range(3):
+                visual.TextStim(self.win, text='-', height=0.12, pos=(.66 + i*0.09,.8)).draw()
+
+            visual.TextStim(self.win, text='True sequence 2: ', height=0.07, pos=(.37,.65)).draw()
+            for i, s in enumerate(['1','2','3','4']):
+                visual.TextStim(self.win, text=s, height=0.12, pos=(.62 + i*0.09,.65)).draw()
+            for i in range(3):
+                visual.TextStim(self.win, text='-', height=0.12, pos=(.66 + i*0.09,.65)).draw()
+
+            visual.TextStim(self.win, text='Let\'s focus on this part of the rule:', height=0.1, pos=(0,.2)).draw()
 
             pos, seq = get_pos_and_seq(true_state)
             s_pos, s_seq = get_scrambled_pos_and_seq(self.scrambling_rule[true_state])
 
+            # Highlight the scrambled state
+            visual.Circle(self.win, size=(.08,.105), 
+                pos=(-.32 + (s_pos-1)*0.09, 0.65 + 0.15*int(s_seq==1)), 
+                lineColor='red', lineWidth=3, fillColor=None).draw()
+
+            # Highlight the true state
+            visual.Circle(self.win, size=(.08,.105), 
+                pos=(0.62 + (pos-1)*0.09, 0.65 + 0.15*int(seq==1)), 
+                lineColor='red', lineWidth=3, fillColor=None).draw()
+
             visual.TextStim(self.win, text='The ' + ordinal_string(s_pos) + ' picture in the ' + ordinal_string(s_seq) + \
                             ' scrambled sequence is the ' + ordinal_string(pos) + ' picture of the ' + \
-                            ordinal_string(seq)  + ' true sequence.', height=0.1, pos=(0,.1)).draw()
+                            ordinal_string(seq)  + ' true sequence.', height=0.1, pos=(0,-.2)).draw()
 
         def scrambled_sequences_screen():
             for scrambled_position in [0, 1, 2, 3]:
@@ -290,14 +353,13 @@ class Training:
 
         ####################### Do the intro
 
-        intro_screens = [screen1, screen2, screen3, screen4]
-        available_keys = [['right'], ['left','right'], ['left','right'], ['left', 'space']]
+        intro_screens = [screen1, screen2, screen3, screen4, screen5, screen6]
         screen_ix = 0
         done = False
         while not done:
             # Draw the current screen
-            intro_screens[screen_ix]()
-            keys = left_right_msg(available_keys[screen_ix])
+            available_keys = intro_screens[screen_ix]()
+            keys = left_right_msg(available_keys)
             
             if keys[0] == 'left':
                 screen_ix -= 1
