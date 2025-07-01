@@ -130,7 +130,12 @@ class AppliedLearning:
         """Display an image corresponding to the specified object letter (W, X, Y, Z, Wp, Xp, Yp, Zp)."""
         # Specify the image size in 'norm' units. (1,1) would fill a quarter of the screen.
         stim = self.object_stims[obj_letter]
-        stim.size = size
+        
+        # Squash the object horizontally to compensate for the aspect ratio of the window
+        width, height = self.win.size
+        a_r = width/height
+        stim.size = (size[0]/a_r, size[1])
+
         stim.pos = pos
         return stim
 
