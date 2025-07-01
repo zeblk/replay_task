@@ -30,10 +30,10 @@ IMAGES_DIR = HERE / "images"
 
 MESSAGE_DURATION = 1.0
 SCRAMBLED_REPEATS = 5
-OBJECT_DURATION = 0.1
+OBJECT_DURATION = 1.0
 REST_DURATION = 1.0
 N_OBJECTS = 8
-ISI = 0.1
+ISI = 1.0
 ITI = 1.5
 
 true_state_names = ['W', 'X', 'Y', 'Z', 'Wp', 'Xp', 'Yp', 'Zp']
