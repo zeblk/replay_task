@@ -87,12 +87,7 @@ class Training:
             "reaction_time",
         ])
 
-        # pre-load images
-        self.object_stims = {}
-        for letter, obj_name in self.object_mapping.items():
-            img_path = IMAGES_DIR / f"{obj_name}.png"
-            self.object_stims[letter] = visual.ImageStim(self.win, image=str(img_path))
-       
+        self.preload_images()
 
     def _exit(self):
         print("Esc detected: ending experiment...")
@@ -100,6 +95,13 @@ class Training:
         core.quit()
         os._exit(0)
 
+    def preload_images(self) -> None:
+        # pre-load images
+        self.object_stims = {}
+        for letter, obj_name in self.object_mapping.items():
+            img_path = IMAGES_DIR / f"{obj_name}.png"
+            self.object_stims[letter] = visual.ImageStim(self.win, image=str(img_path))
+       
     def close(self) -> None:
         """Close open resources."""
         try:
@@ -387,8 +389,9 @@ class Training:
             return [k for k, v in dict_of_levels.items() if v > level]
 
         # Keep training while any states are below max proficiency level
+        done_remap_at_level = 0
         current_lowest_level = min(learning_levels.values())
-        while current_lowest_level < 3:
+        while current_lowest_level < 4:
 
             # train a state from the least-learned tier
             print('current_lowest_level: ' + str(current_lowest_level))
@@ -423,6 +426,20 @@ class Training:
 
             current_lowest_level = min(learning_levels.values())
             print('learning_levels: ' + str(learning_levels))
+
+            if (current_lowest_level > done_remap_at_level) and (current_lowest_level < 4):
+                visual.TextStim(self.win, text='Now we are going to reshuffle the pictures.', height=0.1, pos=(0,.5)).draw()
+                visual.TextStim(self.win, text='The rule stays the same.', height=0.1, pos=(0,.2)).draw()
+                visual.TextStim(self.win, text=('Remember, focus on learning the rule, because tomorrow '
+                    'you will have to work with a whole new set of pictures.'), height=0.1, pos=(0,-.2)).draw()
+                visual.TextStim(self.win, text=('(Press space to continue)'), height=0.08, pos=(0,-.6)).draw()
+                self.win.flip()
+                event.waitKeys(keyList=["space"])
+
+                self.object_mapping = get_object_mapping(self.subject_id, 'training', force_new=True)
+                self.preload_images() # This isn't the most efficient way, but somehow we have to update the mapping in the preloaded images
+                done_remap_at_level = current_lowest_level
+
 
         visual.TextStim(self.win, text="All done. Great job.", height=0.1, pos=(0,0.0)).draw()
         visual.TextStim(self.win, text="Press space to exit", height=0.07, pos=(0,-0.5)).draw()

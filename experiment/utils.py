@@ -122,26 +122,7 @@ def get_scrambling_rule(subject_id: int):
         return all_rules[subject_str]
 
     # Otherwise, create a new rule because one doesn't exist for this subject.
-    # Enforce the constraint that the scrambled sequence alternates between true sequence 1 and true sequence 2.
-    start_with_seq_1 = random.choice([True, False])
-    if start_with_seq_1:
-        list_of_letters_1 = ['W', 'X', 'Y', 'Z']
-        scrambled_positions_1 = random.sample([0, 2, 4, 6], len(list_of_letters_1))
-        scrambling_rule_1 = dict(zip(list_of_letters_1, scrambled_positions_1))
-
-        list_of_letters_2 = ['Wp', 'Xp', 'Yp', 'Zp']
-        scrambled_positions_2 = random.sample([1, 3, 5, 7], len(list_of_letters_2))
-        scrambling_rule_2 = dict(zip(list_of_letters_2, scrambled_positions_2))
-    else:
-        list_of_letters_1 = ['W', 'X', 'Y', 'Z']
-        scrambled_positions_1 = random.sample([1, 3, 5, 7], len(list_of_letters_1))
-        scrambling_rule_1 = dict(zip(list_of_letters_1, scrambled_positions_1))
-
-        list_of_letters_2 = ['Wp', 'Xp', 'Yp', 'Zp']
-        scrambled_positions_2 = random.sample([0, 2, 4, 6], len(list_of_letters_2))
-        scrambling_rule_2 = dict(zip(list_of_letters_2, scrambled_positions_2))
-
-    new_rule = {**scrambling_rule_1, **scrambling_rule_2}
+    new_rule = create_random_mapping()
 
     # Add the newly created rule to our collection and save it.
     all_rules[subject_str] = new_rule
@@ -149,9 +130,57 @@ def get_scrambling_rule(subject_id: int):
         
     return new_rule
 
+def create_random_mapping():
+    """
+    Creates a random mapping from lettercodes to numbers 0-7 with constraints.
+    
+    Constraint: Within each scrambled sequence, we must alternate between the two true sequences.
+    """
+    true_sequence_1 = ['W', 'X', 'Y', 'Z']
+    true_sequence_2 = ['Wp', 'Xp', 'Yp', 'Zp']
+    
+    # Start with all lettercodes available
+    available_codes = true_sequence_1 + true_sequence_2
+    mapping = {}
+    
+    # Track which subset each number belongs to
+    number_subsets = {}
+    
+    # Process numbers in order, respecting constraints
+    for num in range(8):
+        if num == 0:
+            # First number can go anywhere
+            chosen_code = random.choice(available_codes)
+        elif num == 4:
+            # Number 4 can go anywhere (no constraint with 3)
+            chosen_code = random.choice(available_codes)
+        else:
+            # For numbers 1,2,3,5,6,7 - check constraint with previous number
+            prev_num = num - 1
+            prev_subset = number_subsets[prev_num]
+            
+            # Must choose from the opposite subset
+            if prev_subset == 'seq1':
+                valid_codes = [code for code in available_codes if code in true_sequence_2]
+            else:
+                valid_codes = [code for code in available_codes if code in true_sequence_1]
+            
+            chosen_code = random.choice(valid_codes)
+        
+        # Update our tracking
+        mapping[chosen_code] = num
+        available_codes.remove(chosen_code)
+        
+        # Track which subset this number belongs to
+        if chosen_code in true_sequence_1:
+            number_subsets[num] = 'seq1'
+        else:
+            number_subsets[num] = 'seq2'
+    
+    return mapping
 
 
-def get_object_mapping(subject_id: int, phase: str) -> dict:
+def get_object_mapping(subject_id: int, phase: str, force_new: bool=False) -> dict:
     """
     Return the randomized state-to-image mapping for the subject, retrieving it from a central
     file or creating a new one if needed.
@@ -164,7 +193,7 @@ def get_object_mapping(subject_id: int, phase: str) -> dict:
     subject_str = 'subject_' + str(subject_id)
 
     # If the mapping for this subject and phase already exists, return it.
-    if subject_str in all_mappings:
+    if (subject_str in all_mappings) and not force_new:
         if phase in all_mappings[subject_str]:
             return all_mappings[subject_str][phase]
 

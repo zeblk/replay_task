@@ -18,3 +18,4 @@ experiment/__pycache__/__init__.cpython-310.pyc
 *.csv#
 *.pyc
 r.bat
+experiment/test.py
