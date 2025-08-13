@@ -26,19 +26,30 @@ from .utils import (
 # Paths
 HERE = Path(__file__).parent
 IMAGES_DIR = HERE / "images"
-
+WIN_WIDTH = 900
+WIN_HEIGHT = 700
 
 MESSAGE_DURATION = 1.0
 SCRAMBLED_REPEATS = 5
 OBJECT_DURATION = 0.9
 REST_DURATION = 1.0
 N_OBJECTS = 8
-ISI = 0.9
+ISI = 1.0
 ITI = 1.5
+
+# For debugging
+# MESSAGE_DURATION = 0.3
+# SCRAMBLED_REPEATS = 5
+# OBJECT_DURATION = 0.1
+# REST_DURATION = .1
+# N_OBJECTS = 8
+# ISI = .1
+# ITI = .1
+
 N_RUNS = 3
 N_REPEATS = 3
-PROBE_ALONE_DURATION = 5
-CHOICE_DURATION = 0.6
+PROBE_ALONE_DURATION = 0.3
+CHOICE_DURATION = 1
 
 true_state_names = ['W', 'X', 'Y', 'Z', 'Wp', 'Xp', 'Yp', 'Zp']
 scrambled_positions = [0, 1, 2, 3, 4, 5, 6, 7]
@@ -62,7 +73,7 @@ class AppliedLearning:
     The probe stimulus appeared alone for 5 s, and then the two candidate successor images appeared.
     One image came from later in the same sequence as the probe.
     The other was preceding in the same sequence with 33% probability; and from the other sequence with 66% probability.
-    Participants had 600 ms to make a choice.
+    Participants have 1000 ms to make a choice.
     """
 
     subject_id: int
@@ -76,7 +87,8 @@ class AppliedLearning:
     def __post_init__(self) -> None:
         self.scrambling_rule = get_scrambling_rule(self.subject_id)
         self.object_mapping = get_object_mapping(self.subject_id, 'applied_learning')
-        self.win = visual.Window(color="black", size=(1024, 768), fullscr=False, units="norm")
+        self.win = visual.Window(color="black",  size=(WIN_WIDTH, WIN_HEIGHT), units="norm")
+        # self.win = visual.Window(color="black", size=(1920, 1080), fullscr=True, units="norm", allowGUI=False,)
         event.globalKeys.clear()
         event.globalKeys.add(key="escape", func=self._exit)
 
@@ -89,16 +101,26 @@ class AppliedLearning:
 
         self.behavior_writer = csv.writer(self.behavior_file)
         self.behavior_writer.writerow([
+            "subject_id",
+            "run_number",
+            "probe_stimulus_picture",    
             "probe_stimulus_true_state",
-            "probe_stimulus_picture",
-            "left_stimulus_true_state",
-            "left_stimulus_picture",
-            "right_stimulus_true_state",
-            "right_stimulus_picture",
-            "key_pressed",
-            "chosen_true_state",
-            "is_correct",
-            "reaction_time",
+            "probe_stim_number",
+            "probe_stim_seq",
+            "correct_stimulus_picture",
+            "correct_stimulus_true_state",
+            "correct_stim_number",
+            "correct_stim_seq",
+            "incorrect_stimulus_picture",
+            "incorrect_stimulus_true_state",
+            "incorrect_stim_number",
+            "incorrect_stim_seq",
+            "correct_state_on_left",  # True = left, False = right
+            "key_pressed", 
+            "chosen_true_state", 
+            "chosen_state_picture",
+            "is_correct", 
+            "reaction_time", 
         ])
 
         # pre-load images
@@ -107,6 +129,12 @@ class AppliedLearning:
             img_path = IMAGES_DIR / f"{obj_name}.png"
             self.object_stims[letter] = visual.ImageStim(self.win, image=str(img_path))
        
+    def preload_images(self) -> None:
+        """Helper method to load/reload images"""
+        self.object_stims = {}
+        for letter, obj_name in self.object_mapping.items():
+            img_path = IMAGES_DIR / f"{obj_name}.png"
+            self.object_stims[letter] = visual.ImageStim(self.win, image=str(img_path))
 
     def _exit(self):
         print("Esc detected: ending experiment...")
@@ -167,7 +195,7 @@ class AppliedLearning:
             self.win.flip()
             core.wait(ITI)
 
-        def quiz_screen():
+        def quiz_screen(run_number: int):
 
             # Select the probe state
             prob_seq = random.choice([1,2])
@@ -223,7 +251,7 @@ class AppliedLearning:
                 # Subject timed out
                 key = None
                 rt = None
-                sj_correctness = None
+                sj_correctness = False
                 chosen_state = None
                 chosen_obj = None
 
@@ -235,19 +263,45 @@ class AppliedLearning:
                 sj_correctness = ((key == "left") and correct_on_left) or ((key == "right") and (not correct_on_left))
                 chosen_state = correct_state if (key == "left" and correct_on_left or key=="right" and not correct_on_left) else incorrect_state
                 chosen_obj = self.object_mapping[chosen_state][1:]
+            
+            # State mapping
+            state_map = {'W':1, 'X':2, 'Y':3, 'Z':4, 'Wp':5, 'Xp':6, 'Yp':7, 'Zp':8}
+
+            # Probe info
+            probe_stim_number = state_map[probe_state]
+            probe_stim_seq = 1 if probe_stim_number <= 4 else 2
+
+            # Correct
+            correct_stim_picture = self.object_mapping[correct_state][1:]
+            correct_stim_number = state_map[correct_state]
+            correct_stim_seq = 1 if correct_stim_number <= 4 else 2
+
+            # Right
+            incorrect_stim_picture = self.object_mapping[incorrect_state][1:]
+            incorrect_stim_number = state_map[incorrect_state]
+            incorrect_stim_seq = 1 if incorrect_stim_number <= 4 else 2
 
             # Record data to behavior file
             self.behavior_writer.writerow([
+                self.subject_id,
+                run_number + 1,  # Add 1 to make it 1-indexed (1, 2, 3) instead of 0-indexed
+                self.object_mapping[probe_state][1:],  # probe_picture
                 probe_state,
-                self.object_mapping[probe_state][1:],
+                probe_stim_number,
+                probe_stim_seq,
+                correct_stim_picture, # correct_picture
                 correct_state,
-                self.object_mapping[correct_state][1:],
+                correct_stim_number,
+                correct_stim_seq,
+                incorrect_stim_picture,  # incorrect_picture
                 incorrect_state,
-                self.object_mapping[incorrect_state][1:],
-                correct_on_left,
+                incorrect_stim_number,
+                incorrect_stim_seq,
+                int(correct_on_left),
                 key,
                 chosen_state,
-                sj_correctness,
+                chosen_obj,  # picture
+                int(sj_correctness),
                 rt,
             ])
             self.behavior_file.flush()
@@ -261,24 +315,44 @@ class AppliedLearning:
 
         # Do four runs
         for run in range(N_RUNS):
-            # Phase 1
-            for repeat in range(N_REPEATS):
-                visual.TextStim(self.win, text='Press space when you\'re ready to see the 1st scrambled sequence.', 
-                                height=0.1, pos=(0,0)).draw()
-                self.win.flip()
-                event.waitKeys(keyList=["space"])
+            # # Phase 1
+            # for repeat in range(N_REPEATS):
+            #     visual.TextStim(self.win, text='Press space when you\'re ready to see the 1st scrambled sequence.', 
+            #                     height=0.1, pos=(0,0)).draw()
+            #     self.win.flip()
+            #     event.waitKeys(keyList=["space"])
+            #     scrambled_sequences_screen(which_seq = 1)
+
+            # # Phase 2
+            # for repeat in range(N_REPEATS):
+            #     visual.TextStim(self.win, text='Press space when you\'re ready to see the 2nd scrambled sequence.', 
+            #                     height=0.1, pos=(0,0)).draw()
+            #     self.win.flip()
+            #     event.waitKeys(keyList=["space"])
+            #     scrambled_sequences_screen(which_seq = 2)
+
+            # for probe_ix in range(10):
+            #     quiz_screen()
+            #     self.win.flip()
+            #     core.wait(ISI)
+            # Reshuffle pictures for each run (except the first)
+            if run > 0:
+                # Get new object mapping (pictures change but rule stays the same)
+                self.object_mapping = get_object_mapping(self.subject_id, 'structure_learning', force_new=True)
+                # Reload images with new mapping
+                self.preload_images()
+            
+            # Show scrambled sequence 1 three times (no prompt)
+            for repeat in range(3):
                 scrambled_sequences_screen(which_seq = 1)
 
-            # Phase 2
-            for repeat in range(N_REPEATS):
-                visual.TextStim(self.win, text='Press space when you\'re ready to see the 2nd scrambled sequence.', 
-                                height=0.1, pos=(0,0)).draw()
-                self.win.flip()
-                event.waitKeys(keyList=["space"])
+            # Show scrambled sequence 2 three times (no prompt)
+            for repeat in range(3):
                 scrambled_sequences_screen(which_seq = 2)
 
+            # Quiz phase
             for probe_ix in range(10):
-                quiz_screen()
+                quiz_screen(run_number=run)  # Pass run number to quiz_screen
                 self.win.flip()
                 core.wait(ISI)
 
@@ -290,7 +364,6 @@ class AppliedLearning:
         self.close()
         core.quit()
 
-
 def main() -> None:
     """Entry point for running the experiment."""
     parser = argparse.ArgumentParser(description="Task 2 from Liu et al (2019) cell")
@@ -299,8 +372,6 @@ def main() -> None:
 
     session = AppliedLearning(args.subject_id)
     session.run()
-
-
 
 if __name__ == "__main__":
     main()

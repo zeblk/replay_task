@@ -26,16 +26,27 @@ from .utils import (
 # Paths
 HERE = Path(__file__).parent
 IMAGES_DIR = HERE / "images"
-
+WIN_WIDTH = 900
+WIN_HEIGHT = 700
 
 MESSAGE_DURATION = 1.0
 SCRAMBLED_REPEATS = 5
-OBJECT_DURATION = 1.0
+OBJECT_DURATION = 0.9
 REST_DURATION = 1.0
 N_OBJECTS = 8
-ISI = 0.5
+ISI = 1.0
 ITI = 1.5
-N_RUNS = 4
+N_RUNS = 3
+
+# For debugging
+# MESSAGE_DURATION = 0.3
+# SCRAMBLED_REPEATS = 5
+# OBJECT_DURATION = 0.1
+# REST_DURATION = .1
+# N_OBJECTS = 8
+# ISI = .1
+# ITI = .1
+# N_RUNS = 3
 
 true_state_names = ['W', 'X', 'Y', 'Z', 'Wp', 'Xp', 'Yp', 'Zp']
 scrambled_positions = [0, 1, 2, 3, 4, 5, 6, 7]
@@ -51,7 +62,7 @@ warnings.filterwarnings(
 @dataclass
 class StructureLearning:
     """Structure Learning (Day 1) task from Liu et al (2019).
-    Participants undergo four runs of training. Each run consists of showing both scrambled sequences three times.
+    Participants undergo three runs of training. Each run consists of showing both scrambled sequences three times.
     Each stimulus is onscreen for 1000 ms, with 500 ms between stimuli, and an extra 1000 ms of blank screen between sequences.
     After each run, participants are probed about the true (unscrambled) order.
     On each probe trial, the probe stimulus is presented in the center of the screen, and two other stimuli are presented below. 
@@ -61,8 +72,8 @@ class StructureLearning:
     Participants are asked to press the button (left or right) corresponding to the stimulus that is later
     in the same true sequence as the probe.
     For example, if X is the probe stimulus, and the two choice options are W and Z, then the correct answer is Z. 
-    There are five probe questions at the end of each run.
-    No feedback is given during probe trials. However, at the end of each run, participants are shown their average accuracy for that run.
+    There are ten probe questions at the end of each run.
+    No feedback is given during probe trials.
     """
 
     subject_id: int
@@ -76,7 +87,8 @@ class StructureLearning:
     def __post_init__(self) -> None:
         self.scrambling_rule = get_scrambling_rule(self.subject_id)
         self.object_mapping = get_object_mapping(self.subject_id, 'structure_learning')
-        self.win = visual.Window(color="black", size=(1024, 768), fullscr=False, units="norm")
+        self.win = visual.Window(color="black",  size=(WIN_WIDTH, WIN_HEIGHT), units="norm")
+        # self.win = visual.Window(color="black", size=(1920, 1080), fullscr=True, units="norm", allowGUI=False,)
         event.globalKeys.clear()
         event.globalKeys.add(key="escape", func=self._exit)
 
@@ -89,24 +101,37 @@ class StructureLearning:
 
         self.behavior_writer = csv.writer(self.behavior_file)
         self.behavior_writer.writerow([
+            "subject_id",
+            "run_number",  # Added to track which run (1-3)
+            "probe_stimulus_picture",    
             "probe_stimulus_true_state",
-            "probe_stimulus_picture",
-            "left_stimulus_true_state",
-            "left_stimulus_picture",
-            "right_stimulus_true_state",
-            "right_stimulus_picture",
-            "key_pressed",
-            "chosen_true_state",
-            "is_correct",
-            "reaction_time",
+            "probe_stim_number",
+            "probe_stim_seq",
+            "correct_stimulus_picture",
+            "correct_stimulus_true_state",
+            "correct_stim_number",
+            "correct_stim_seq",
+            "incorrect_stimulus_picture",
+            "incorrect_stimulus_true_state",
+            "incorrect_stim_number",
+            "incorrect_stim_seq",
+            "correct_state_on_left",  # True = left, False = right
+            "key_pressed", 
+            "chosen_true_state", 
+            "chosen_state_picture",
+            "is_correct", 
+            "reaction_time", 
         ])
 
         # pre-load images
+        self.preload_images()
+       
+    def preload_images(self) -> None:
+        """Helper method to load/reload images"""
         self.object_stims = {}
         for letter, obj_name in self.object_mapping.items():
             img_path = IMAGES_DIR / f"{obj_name}.png"
             self.object_stims[letter] = visual.ImageStim(self.win, image=str(img_path))
-       
 
     def _exit(self):
         print("Esc detected: ending experiment...")
@@ -162,10 +187,9 @@ class StructureLearning:
             visual.TextStim(self.win, text='Now, you will apply the rule you learned to unscramble a new set of pictures.', height=0.1, pos=(0,0)).draw()
 
         def screen2():
-            visual.TextStim(self.win, text='You will see the 1st scrambled sequence three times in a row.', height=0.1, pos=(0,.7)).draw()
-            visual.TextStim(self.win, text='Then you will see the 2nd scrambled sequence three times in a row.', height=0.1, pos=(0,.3)).draw()
-            visual.TextStim(self.win, text='Finally, we will ask quiz questions about the true (unscrambled) order.', height=0.1, pos=(0,-.1)).draw()
-            visual.TextStim(self.win, text='This process will repeat four times.', height=0.1, pos=(0,-.7)).draw()
+            visual.TextStim(self.win, text='First, you will see the 1st scrambled sequence repeated 3 times in a row.', height=0.1, pos=(0,.5)).draw()
+            visual.TextStim(self.win, text='Then, you will see the 2nd scrambled sequence repeated 3 times in a row.', height=0.1, pos=(0,0)).draw()
+            visual.TextStim(self.win, text='Finally, we will ask quiz questions about the true (unscrambled) order.', height=0.1, pos=(0,-.5)).draw()
             
         def screen3():
             visual.TextStim(self.win, text='Each quiz question will show one picture at the top, and ' + \
@@ -173,8 +197,13 @@ class StructureLearning:
             self.get_object(self.reverse_state_lookup(0), size=(0.5,0.5), pos=(0,.5)).draw()
             self.get_object(self.reverse_state_lookup(1), size=(0.3,0.3), pos=(-.5,-.5)).draw()
             self.get_object(self.reverse_state_lookup(2), size=(0.3,0.3), pos=(.5,-.5)).draw()
-            
+        
         def screen4():
+            visual.TextStim(self.win, text='This entire process will repeat 3 times.', height=0.1, pos=(0,.5)).draw()
+            visual.TextStim(self.win, text='On each repeat, we will reshuffle the pictures.', height=0.1, pos=(0,0)).draw()
+            visual.TextStim(self.win, text='*Remember, the rule stays the same*', height=0.1, pos=(0,-.5)).draw()
+            
+        def screen5():
             visual.TextStim(self.win, text='You can choose one of the two pictures below.', height=0.08, pos=(0,.15)).draw()
             visual.TextStim(self.win, text='The correct choice is the picture that is *later in the same true sequence* ' + \
                 'as the picture on top.', height=0.08, pos=(0,-.17)).draw()
@@ -204,7 +233,7 @@ class StructureLearning:
             core.wait(ITI)
 
 
-        def quiz_screen():
+        def quiz_screen(run_number: int):
 
             # Select the probe state
             prob_seq = random.choice([1,2])
@@ -256,27 +285,52 @@ class StructureLearning:
             chosen_state = correct_state if (key == "left" and correct_on_left or key=="right" and not correct_on_left) else incorrect_state
             chosen_obj = self.object_mapping[chosen_state][1:]
 
+            # State mapping
+            state_map = {'W':1, 'X':2, 'Y':3, 'Z':4, 'Wp':5, 'Xp':6, 'Yp':7, 'Zp':8}
+
+            # Probe info
+            probe_stim_number = state_map[probe_state]
+            probe_stim_seq = 1 if probe_stim_number <= 4 else 2
+
+            # Correct
+            correct_stim_picture = self.object_mapping[correct_state][1:]
+            correct_stim_number = state_map[correct_state]
+            correct_stim_seq = 1 if correct_stim_number <= 4 else 2
+
+            # Right
+            incorrect_stim_picture = self.object_mapping[incorrect_state][1:]
+            incorrect_stim_number = state_map[incorrect_state]
+            incorrect_stim_seq = 1 if incorrect_stim_number <= 4 else 2
+
             # Record data to behavior file
             self.behavior_writer.writerow([
+                self.subject_id,
+                run_number + 1,  # Add 1 to make it 1-indexed (1, 2, 3) instead of 0-indexed
+                self.object_mapping[probe_state][1:],  # probe_picture
                 probe_state,
-                self.object_mapping[probe_state][1:],
+                probe_stim_number,
+                probe_stim_seq,
+                correct_stim_picture, # correct_picture
                 correct_state,
-                self.object_mapping[correct_state][1:],
+                correct_stim_number,
+                correct_stim_seq,
+                incorrect_stim_picture,  # incorrect_picture
                 incorrect_state,
-                self.object_mapping[incorrect_state][1:],
-                correct_on_left,
+                incorrect_stim_number,
+                incorrect_stim_seq,
+                int(correct_on_left),
                 key,
                 chosen_state,
-                sj_correctness,
+                chosen_obj,  # picture
+                int(sj_correctness),
                 rt,
             ])
             self.behavior_file.flush()
 
-
         ####################### Do the intro
 
-        intro_screens = [screen1, screen2, screen3, screen4]
-        available_keys = [['right'], ['left','right'], ['left','right'], ['left', 'space']]
+        intro_screens = [screen1, screen2, screen3, screen4, screen5]
+        available_keys = [['right'], ['left','right'], ['left','right'], ['left','right'], ['left', 'space']]
         screen_ix = 0
         done = False
         while not done:
@@ -296,23 +350,24 @@ class StructureLearning:
 
         # Loop through the runs
         for run in range(N_RUNS):
+            # Reshuffle pictures for each run (except the first)
+            if run > 0:
+                # Get new object mapping (pictures change but rule stays the same)
+                self.object_mapping = get_object_mapping(self.subject_id, 'structure_learning', force_new=True)
+                # Reload images with new mapping
+                self.preload_images()
+            
+            # Show scrambled sequence 1 three times (no prompt)
             for repeat in range(3):
-                visual.TextStim(self.win, text='Press space when you\'re ready to see the 1st scrambled sequence.', 
-                                height=0.1, pos=(0,0)).draw()
-                self.win.flip()
-                event.waitKeys(keyList=["space"])
                 scrambled_sequences_screen(which_seq = 1)
 
+            # Show scrambled sequence 2 three times (no prompt)
             for repeat in range(3):
-                visual.TextStim(self.win, text='Press space when you\'re ready to see the 2nd scrambled sequence.', 
-                                height=0.1, pos=(0,0)).draw()
-                self.win.flip()
-                event.waitKeys(keyList=["space"])
                 scrambled_sequences_screen(which_seq = 2)
 
-
+            # Quiz phase
             for probe_ix in range(10):
-                quiz_screen()
+                quiz_screen(run_number=run)  # Pass run number to quiz_screen
                 self.win.flip()
                 core.wait(ISI)
 
@@ -333,7 +388,6 @@ def main() -> None:
 
     session = StructureLearning(args.subject_id)
     session.run()
-
 
 
 if __name__ == "__main__":

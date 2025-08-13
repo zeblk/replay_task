@@ -50,14 +50,14 @@ SESSION2_OBJECTS = [
 ]
 
 TRAINING_OBJECTS = [
-    "3papaya",
-    "3broccoli",
-    "3eggplant",
-    "3strawberry",
+    "3zebra",
     "3banana",
-    "3fig",
-    "3asparagus",
+    "3butterfly",
+    "3strawberry",
+    "3umbrella",
+    "3scissors",
     "3pineapple",
+    "3balloon",
 ]
 
 def get_pos_and_seq(state_name: str) -> tuple[int, int]:
