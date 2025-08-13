@@ -362,13 +362,13 @@ class Training:
                 visual.TextStim(self.win, text="Correct!", height=0.1, pos=(0, 0)).draw()
                 self.win.flip()
                 core.wait(MESSAGE_DURATION)
-                result = 1
+                result = "correct"
             else:
                 # SIMPLIFIED: Just show "Incorrect!" without the explanation
                 visual.TextStim(self.win, text="Incorrect!", height=0.1, pos=(0, 0)).draw()
                 self.win.flip()
                 core.wait(MESSAGE_DURATION)
-                result = 0
+                result = "incorrect"
 
             choice_stim_seq = chosen_seq
 
@@ -435,13 +435,13 @@ class Training:
                 visual.TextStim(self.win, text="Correct!", height=0.1, pos=(0, 0)).draw()
                 self.win.flip()
                 core.wait(MESSAGE_DURATION)
-                result = 1
+                result = "correct"
             else:
                 # SIMPLIFIED: Just show "Incorrect!" without the explanation
                 visual.TextStim(self.win, text="Incorrect!", height=0.1, pos=(0, 0)).draw()
                 self.win.flip()
                 core.wait(MESSAGE_DURATION)
-                result = 1
+                result = "incorrect"
 
             l_stim_number = state_map[true_state_1]
             l_stim_seq = 1 if true_state_1 in ['W', 'X', 'Y', 'Z'] else 2
