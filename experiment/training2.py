@@ -8,6 +8,7 @@ import random
 import warnings
 from dataclasses import dataclass, field
 from datetime import datetime
+from itertools import combinations
 from pathlib import Path
 from typing import Dict
 
@@ -249,7 +250,7 @@ class Training:
             for i in range(3):
                 visual.TextStim(self.win, text='-', height=0.12, pos=(.66 + i * 0.09, .65)).draw()
 
-            visual.TextStim(self.win, text="Let's focus on this part of the rule:", height=0.1, pos=(0, .2)).draw()
+            visual.TextStim(self.win, text="Here's one piece of the rule:", height=0.1, pos=(0, .2)).draw()
 
             pos, seq = get_pos_and_seq(true_state)
             s_pos, s_seq = get_scrambled_pos_and_seq(self.scrambling_rule[true_state])
@@ -545,32 +546,9 @@ class Training:
             
             visual.TextStim(self.win, text="Press space to continue", height=0.05, pos=(0, -.9)).draw()
 
-        def mixed_quiz_block(n: int = 8):
-            """
-            Run a mixed quiz with n trials: half sequence-membership and half order (rounded).
-            Incorrect answers trigger focused reminders and retry.
-            """
-            kinds = (['sequence'] * (n // 2)) + (['order'] * (n - n // 2))
-            self.rng.shuffle(kinds)
-            for kind in kinds:
-                if kind == 'sequence':
-                    s = self.rng.choice(true_state_names)
-                    res = seq_quiz_screen(true_state=s)
-                    if res == "escape":
-                        return "escape"
-                else:
-                    seq_id = self.rng.choice([1, 2])
-                    candidates = [s for s in true_state_names if (1 if s in ['W', 'X', 'Y', 'Z'] else 2) == seq_id]
-                    a, b = self.rng.sample(candidates, 2)
-                    res = order_quiz_screen(true_state_1=a, true_state_2=b)
-                    if res == "escape":
-                        return "escape"
-                left_right_msg(['space'])
-            return "done"
 
-        # ================= MAIN TRAINING FLOW =================
+        # ================= Intro navigator =================
         
-        # Intro navigator
         intro_screens = [screen1, screen2, screen3, screen4, screen5, screen6]
         screen_ix, done_intro = 0, False
         while not done_intro:
@@ -588,6 +566,7 @@ class Training:
                 core.quit()
             screen_ix = np.maximum(np.minimum(screen_ix, len(intro_screens)-1), 0)
         
+        # Initialize learning levels to zero
         learning_levels = {state: 0 for state in true_state_names}
         
         def states_at_level(dict_of_levels, level: int):
@@ -596,73 +575,129 @@ class Training:
         def states_above_level(dict_of_levels, level: int):
             return [k for k, v in dict_of_levels.items() if v > level]
 
+        def random_state_from_same_seq(state_name):
+            pos, seq = get_pos_and_seq(state_name)
+            states_in_same_seq = [s for s in true_state_names if
+              (seq == get_pos_and_seq(s)[1] and s != state_name)]
+            return self.rng.choice(states_in_same_seq)
 
+        def random_same_seq_pair(strong_states):
+            """
+            Return a random pair (s1, s2) from strong_states that belong to the same
+            sequence per get_pos_and_seq(s)[1]. Return None if no such pair exists.
+            """
+            pairs = [
+                (a, b)
+                for a, b in combinations(strong_states, 2)
+                if get_pos_and_seq(a)[1] == get_pos_and_seq(b)[1]
+            ]
+            return random.choice(pairs) if pairs else None
 
-        # Re-permute the mapping of visual objects to state indices (rule unchanged)
-        self.object_mapping = get_object_mapping(self.subject_id, 'training', force_new=True)
-        self.preload_images()
+        def permute_and_show_seqs():
+            ''' Assumes quiz_state_1 and quiz_state_2 come from the same true sequence
+            '''
+            visual.TextStim(self.win, text='Now we\'ll show a *new sequence* of pictures.', height=0.1, pos=(0, .3)).draw()
+            visual.TextStim(self.win, text='The rule always stays the same.', height=0.1, pos=(0, 0)).draw()
+            visual.TextStim(self.win, text="(Press space to continue)", height=0.07, pos=(0, -.7)).draw()
+            self.win.flip()
+            event.waitKeys(keyList=["space"])
 
-        # Reset learning levels for this shuffle
-        learning_levels = {state: 0 for state in true_state_names}
-
-        # Keep training while any states are below max proficiency level
-        current_lowest_level = min(learning_levels.values())
-        while current_lowest_level < 1:
-
-            # Train a state from the least-learned tier
-            true_state = self.rng.choice(states_at_level(learning_levels, current_lowest_level))
-            pos, seq = get_pos_and_seq(true_state)
-
-            # Focused rule reminder + sequence observation
-            rule_screen(true_state=true_state)
-            left_right_msg(['space'])
+            # Re-permute the visual objects and show the scrambled sequence
+            self.object_mapping = get_object_mapping(self.subject_id, 'training', force_new=True)
+            self.preload_images()
             scrambled_sequences_screen()
 
-            # Sequence-membership quiz
-            quiz_result = seq_quiz_screen(true_state=true_state)
-            if quiz_result == "escape":
+        def do_quizzes(learning_levels, quiz_state_1, quiz_state_2):
+            ''' Assumes quiz_state_1 and quiz_state_2 come from the same true sequence
+            '''
+
+            # Do a sequence-membership quiz
+            quiz_result_1 = seq_quiz_screen(true_state=quiz_state_1)
+            if quiz_result_1 == "escape":
                 self.close()
                 core.quit()
                 return
             left_right_msg(['space'])
 
-            # If there's another state above level-0 in this sequence, also do an ORDER quiz
-            quiz_result_2 = 'correct'
-            true_state_2 = None
-            states_in_same_seq = [s for s in states_above_level(learning_levels, 0) if
-                                  (seq == get_pos_and_seq(s)[1] and s != true_state)]
-            if states_in_same_seq:
-                true_state_2 = self.rng.choice(states_in_same_seq)
-                quiz_result_2 = order_quiz_screen(true_state_1=true_state, true_state_2=true_state_2)
-                if quiz_result_2 == "escape":
-                    self.close()
-                    core.quit()
-                    return
+            # Update learning levels based on performance
+            if quiz_result_1 == 'correct':
+                learning_levels[quiz_state_1] += 1
+            else:
+                # Do not allow learning level to drop below 0
+                if learning_levels[quiz_state_1] > 0:
+                    learning_levels[quiz_state_1] -= 1
+
+                # If there was an error, we will refresh this part of the rule
+                rule_screen(true_state=quiz_state_1)
                 left_right_msg(['space'])
 
+            # Also do an order quiz
+            quiz_result_2 = order_quiz_screen(true_state_1=quiz_state_1, true_state_2=quiz_state_2)
+            if quiz_result_2 == "escape":
+                self.close()
+                core.quit()
+                return
+            left_right_msg(['space'])
+
             # Update learning levels based on performance
-            if quiz_result == 'correct' and quiz_result_2 == 'correct':
-                learning_levels[true_state] += 1
+            if quiz_result_2 == 'correct':
+                learning_levels[quiz_state_1] += 1
+                learning_levels[quiz_state_2] += 1
             else:
-                # Do not allow learning level to drop below 1
-                if learning_levels[true_state] > 1:
-                    learning_levels[true_state] -= 1
-                if true_state_2 and learning_levels[true_state_2] > 1:
-                    learning_levels[true_state_2] -= 1
+                learning_levels[quiz_state_1] = 0
+                learning_levels[quiz_state_2] = 0
 
-            current_lowest_level = min(learning_levels.values())
+                # If there was an error, we will refresh these two parts of the rule
+                rule_screen(true_state=quiz_state_1)
+                left_right_msg(['space'])
 
-        # Mastery reached for this shuffle: show full rule then mixed quiz
-        show_full_rule_screen()
-        self.win.flip()
-        event.waitKeys(keyList=["space"])
-        res = mixed_quiz_block(n= nseq)
-        if res == "escape":
-            self.close()
-            core.quit()
-            return
+                rule_screen(true_state=quiz_state_2)
+                left_right_msg(['space'])
 
-        # End-of-session screen
+        # ================= Train pieces of rule =================
+
+        # Loop through until all parts of the rule have gained proficiency
+        current_lowest_level = min(learning_levels.values())
+        while current_lowest_level < 3:
+
+            # Train two states, where at least one comes from the least-learned tier
+            train_state_1 = self.rng.choice(states_at_level(learning_levels, current_lowest_level))
+            rule_screen(true_state=train_state_1)
+            left_right_msg(['space'])
+
+            train_state_2 = random_state_from_same_seq(train_state_1)
+            rule_screen(true_state=train_state_2)
+            left_right_msg(['space'])
+
+            # Get participants up to level 2 proficiency on these two parts of the rule
+            while learning_levels[train_state_1] < 2 or learning_levels[train_state_2] < 2:
+
+                # Quiz on train states (randomize which is no1 and which is no2)
+                quiz_state_1, quiz_state_2 = random.sample([train_state_1, train_state_2], k=2)
+                permute_and_show_seqs()
+                do_quizzes(learning_levels, quiz_state_1, quiz_state_2)
+
+                # Also quiz on any two other well-learned states, if there are any two belonging to the same sequence
+                strong_states = set(states_above_level(learning_levels, 1))
+                strong_states_diff = list(strong_states - set([train_state_1, train_state_2]))
+                strong_pair = random_same_seq_pair(strong_states_diff)
+                if strong_pair:
+                    quiz_state_1, quiz_state_2 = strong_pair
+                    do_quizzes(learning_levels, quiz_state_1, quiz_state_2)
+
+        # ================= Open quizzes on all states, under a stable mapping =================
+
+        permute_and_show_seqs()
+
+        for _ in range(10):
+            quiz_state_1 = self.rng.choice(true_state_names)
+            quiz_state_2 = random_state_from_same_seq(quiz_state_1)
+
+            do_quizzes(learning_levels, quiz_state_1, quiz_state_2)
+
+
+        # ================= End-of-session screen =================
+
         visual.TextStim(self.win, text="All done. Great job.", height=0.1, pos=(0, 0.0)).draw()
         visual.TextStim(self.win, text="Press space to exit", height=0.07, pos=(0, -0.5)).draw()
         self.win.flip()
