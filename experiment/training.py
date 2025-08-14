@@ -79,7 +79,7 @@ class Training:
         self.inv_scrambling_rule = {v: k for k, v in self.scrambling_rule.items()}
         self.object_mapping = get_object_mapping(self.subject_id, 'training')
         self.win = visual.Window(color="black",  size=(WIN_WIDTH, WIN_HEIGHT), units="norm")
-        # self.win = visual.Window(color="black", size=(1920, 1080), fullscr=True, units="norm", allowGUI=False,)
+        self.win = visual.Window(color="black", size=(1920, 1080), fullscr=True, units="norm", allowGUI=False,)
         event.globalKeys.clear()
         event.globalKeys.add(key="escape", func=self._exit)
 
@@ -190,32 +190,32 @@ class Training:
         def screen4():
             visual.TextStim(self.win, text='Then you will have to answer questions, like: does ' + self.object_mapping['W'][1:] +
                             ' come before or after ' + self.object_mapping['X'][1:] + '?', height=0.1, pos=(0, .6)).draw()
-            visual.TextStim(self.win, text='**But the questions will be about the unscrambled order, not the order you saw.**', height=0.1, pos=(0, 0)).draw()
+            visual.TextStim(self.win, text='But the questions will be about the unscrambled order, not the order you saw.', height=0.1, pos=(0, 0), bold=True).draw()
             visual.TextStim(self.win, text="So you'll have to mentally reorder the sequences to answer these questions.", height=0.1, pos=(0, -.5)).draw()
             return ['left', 'right']
 
         def screen5():
-            visual.TextStim(self.win, text='**Here is the rule**', height=0.12, pos=(0, .7)).draw()
+            visual.TextStim(self.win, text='Here is the rule. We will help you learn it today.', height=0.12, pos=(0, .7), bold=True).draw()
 
             name_mapping = {'W': 'A', 'X': 'B', 'Y': 'C', 'Z': 'D', 'Wp': '1', 'Xp': '2', 'Yp': '3', 'Zp': '4'}
             ss_1 = "-".join([name_mapping[self.reverse_state_lookup(i)] for i in range(4)])
             ss_2 = "-".join([name_mapping[self.reverse_state_lookup(i)] for i in range(4, 8)])
 
-            visual.TextStim(self.win, text='Scrambled sequence 1: ', height=0.1, pos=(0, .5)).draw()
-            visual.TextStim(self.win, text=ss_1, height=0.12, pos=(0, .4)).draw()
+            visual.TextStim(self.win, text='Scrambled sequence 1: ', height=0.1, pos=(0, .4)).draw()
+            visual.TextStim(self.win, text=ss_1, height=0.12, pos=(0, .3)).draw()
             visual.TextStim(self.win, text='Scrambled sequence 2: ', height=0.1, pos=(0, .2)).draw()
             visual.TextStim(self.win, text=ss_2, height=0.12, pos=(0, .1)).draw()
 
-            visual.TextStim(self.win, text='True sequence 1: ', height=0.1, pos=(0, -.1)).draw()
-            visual.TextStim(self.win, text='A-B-C-D', height=0.12, pos=(0, -.2)).draw()
-            visual.TextStim(self.win, text='True sequence 2: ', height=0.1, pos=(0, -.4)).draw()
-            visual.TextStim(self.win, text='1-2-3-4', height=0.12, pos=(0, -.5)).draw()
+            visual.TextStim(self.win, text='True sequence 1: ', height=0.1, pos=(0, -.2)).draw()
+            visual.TextStim(self.win, text='A-B-C-D', height=0.12, pos=(0, -.3)).draw()
+            visual.TextStim(self.win, text='True sequence 2: ', height=0.1, pos=(0, -.5)).draw()
+            visual.TextStim(self.win, text='1-2-3-4', height=0.12, pos=(0, -.6)).draw()
             return ['left', 'right']
 
         def screen6():
-            visual.TextStim(self.win, text='Tomorrow, you will apply the same rule to unscramble two *new* sequences of pictures.', height=0.1, pos=(0, .5)).draw()
-            visual.TextStim(self.win, text="You earn money by applying today's rule to tomorrow's pictures.", height=0.1, pos=(0, .05)).draw()
-            visual.TextStim(self.win, text="So it's really important to *learn the rule* today.", height=0.1, pos=(0, -.35)).draw()
+            visual.TextStim(self.win, text='Tomorrow, you will apply the same rule to unscramble new sequences of pictures.', height=0.1, pos=(0, .5)).draw()
+            visual.TextStim(self.win, text="You will earn points by applying today's rule to tomorrow's pictures.", height=0.1, pos=(0, .05)).draw()
+            visual.TextStim(self.win, text="So it's really important to learn the rule today.", height=0.1, pos=(0, -.35)).draw()
             return ['left', 'space']
 
         # Rules
