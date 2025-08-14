@@ -27,6 +27,9 @@ FEEDBACK_DURATION = 1.0
 ITI_MIN = 1.0
 ITI_MAX = 1.5
 
+CORRECT_KEY = "p"
+INCORRECT_KEY = "q"
+
 warnings.filterwarnings(
     "ignore",
     message="elementwise comparison failed.*",
@@ -116,6 +119,17 @@ class FunctionalLocalizer:
         match_flags = [True] * 120 + [False] * 120
         self.rng.shuffle(match_flags)
 
+        # Draw instructions
+
+        visual.TextStim(self.win, text="A picture will appear, followed by a word. " + \
+            "If the word *matches* the picture, press " + CORRECT_KEY + ". " + \
+            "Otherwise, press " + INCORRECT_KEY + ". ", color="white", height=0.1, pos=(0, .3)).draw()
+        visual.TextStim(self.win, text="(Press space to begin)", color="white", height=0.08, pos=(0, -.6)).draw()
+        self.win.flip()
+        keys = event.waitKeys(keyList=["space"])
+
+        # Start Functional Localizer main trial loop
+
         for trial_num, obj_name in enumerate(trial_order, start=1):
             event.clearEvents()
             is_match = match_flags[trial_num - 1]
@@ -138,12 +152,12 @@ class FunctionalLocalizer:
             self.win.flip()
 
             resp_clock = core.Clock()
-            keys = event.waitKeys(maxWait=TEXT_DURATION, keyList=["p", "q"], timeStamped=resp_clock)
+            keys = event.waitKeys(maxWait=TEXT_DURATION, keyList=[CORRECT_KEY, INCORRECT_KEY], timeStamped=resp_clock)
             self.win.flip()
 
             if keys:
                 key, rt = keys[0]
-                correct = (key == "p" and is_match) or (key == "q" and not is_match)
+                correct = (key == CORRECT_KEY and is_match) or (key == INCORRECT_KEY and not is_match)
                 feedback = "Correct" if correct else "Incorrect"
                 self.behavior_writer.writerow(
                     [self.subject_id, trial_num, obj_name, text_name, is_match, key, correct, rt]

@@ -596,80 +596,71 @@ class Training:
         def states_above_level(dict_of_levels, level: int):
             return [k for k, v in dict_of_levels.items() if v > level]
 
-        N_SHUFFLES = 3
-        for shuffle_idx in range(N_SHUFFLES):
-            if shuffle_idx > 0:
-                # Inform about reshuffle; RULE stays the same
-                visual.TextStim(self.win, text='We are going to reshuffle the pictures.', height=0.1, pos=(0, .5)).draw()
-                visual.TextStim(self.win, text='The rule stays the same.', height=0.1, pos=(0, .2)).draw()
-                visual.TextStim(self.win, text=('Remember, focus on learning the rule, because tomorrow '
-                                                'you will have to work with a whole new set of pictures.'), height=0.1, pos=(0, -.2)).draw()
-                visual.TextStim(self.win, text="Press space to continue", height=0.05, pos=(0, -.9)).draw()
-                self.win.flip()
-                event.waitKeys(keyList=["space"])
-                # New mapping for training (rule unchanged)
-                self.object_mapping = get_object_mapping(self.subject_id, 'training', force_new=True)
-                self.preload_images()
 
-            # Reset learning levels for this shuffle
-            learning_levels = {state: 0 for state in true_state_names}
 
-            # Keep training while any states are below max proficiency level
-            current_lowest_level = min(learning_levels.values())
-            while current_lowest_level < 1:
+        # Re-permute the mapping of visual objects to state indices (rule unchanged)
+        self.object_mapping = get_object_mapping(self.subject_id, 'training', force_new=True)
+        self.preload_images()
 
-                # Train a state from the least-learned tier
-                true_state = self.rng.choice(states_at_level(learning_levels, current_lowest_level))
-                pos, seq = get_pos_and_seq(true_state)
+        # Reset learning levels for this shuffle
+        learning_levels = {state: 0 for state in true_state_names}
 
-                # Focused rule reminder + sequence observation
-                rule_screen(true_state=true_state)
-                left_right_msg(['space'])
-                scrambled_sequences_screen()
+        # Keep training while any states are below max proficiency level
+        current_lowest_level = min(learning_levels.values())
+        while current_lowest_level < 1:
 
-                # Sequence-membership quiz
-                quiz_result = seq_quiz_screen(true_state=true_state)
-                if quiz_result == "escape":
+            # Train a state from the least-learned tier
+            true_state = self.rng.choice(states_at_level(learning_levels, current_lowest_level))
+            pos, seq = get_pos_and_seq(true_state)
+
+            # Focused rule reminder + sequence observation
+            rule_screen(true_state=true_state)
+            left_right_msg(['space'])
+            scrambled_sequences_screen()
+
+            # Sequence-membership quiz
+            quiz_result = seq_quiz_screen(true_state=true_state)
+            if quiz_result == "escape":
+                self.close()
+                core.quit()
+                return
+            left_right_msg(['space'])
+
+            # If there's another state above level-0 in this sequence, also do an ORDER quiz
+            quiz_result_2 = 'correct'
+            true_state_2 = None
+            states_in_same_seq = [s for s in states_above_level(learning_levels, 0) if
+                                  (seq == get_pos_and_seq(s)[1] and s != true_state)]
+            if states_in_same_seq:
+                true_state_2 = self.rng.choice(states_in_same_seq)
+                quiz_result_2 = order_quiz_screen(true_state_1=true_state, true_state_2=true_state_2)
+                if quiz_result_2 == "escape":
                     self.close()
                     core.quit()
                     return
                 left_right_msg(['space'])
 
-                # If there's another state above level-0 in this sequence, also do an ORDER quiz
-                quiz_result_2 = 'correct'
-                true_state_2 = None
-                states_in_same_seq = [s for s in states_above_level(learning_levels, 0) if
-                                      (seq == get_pos_and_seq(s)[1] and s != true_state)]
-                if states_in_same_seq:
-                    true_state_2 = self.rng.choice(states_in_same_seq)
-                    quiz_result_2 = order_quiz_screen(true_state_1=true_state, true_state_2=true_state_2)
-                    if quiz_result_2 == "escape":
-                        self.close()
-                        core.quit()
-                        return
-                    left_right_msg(['space'])
+            # Update learning levels based on performance
+            if quiz_result == 'correct' and quiz_result_2 == 'correct':
+                learning_levels[true_state] += 1
+            else:
+                # Do not allow learning level to drop below 1
+                if learning_levels[true_state] > 1:
+                    learning_levels[true_state] -= 1
+                if true_state_2 and learning_levels[true_state_2] > 1:
+                    learning_levels[true_state_2] -= 1
 
-                # Update learning levels based on performance
-                if quiz_result == 'correct' and quiz_result_2 == 'correct':
-                    learning_levels[true_state] += 1
-                else:
-                    # Do not allow learning level to drop below 1
-                    if learning_levels[true_state] > 1:
-                        learning_levels[true_state] -= 1
-                    if true_state_2 and learning_levels[true_state_2] > 1:
-                        learning_levels[true_state_2] -= 1
+            current_lowest_level = min(learning_levels.values())
 
-                current_lowest_level = min(learning_levels.values())
-
-            # Mastery reached for this shuffle: show full rule then mixed quiz
-            show_full_rule_screen()
-            self.win.flip()
-            event.waitKeys(keyList=["space"])
-            res = mixed_quiz_block(n= nseq)
-            if res == "escape":
-                self.close()
-                core.quit()
-                return
+        # Mastery reached for this shuffle: show full rule then mixed quiz
+        show_full_rule_screen()
+        self.win.flip()
+        event.waitKeys(keyList=["space"])
+        res = mixed_quiz_block(n= nseq)
+        if res == "escape":
+            self.close()
+            core.quit()
+            return
 
         # End-of-session screen
         visual.TextStim(self.win, text="All done. Great job.", height=0.1, pos=(0, 0.0)).draw()
