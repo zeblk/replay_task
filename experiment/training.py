@@ -141,10 +141,11 @@ class Training:
             pass
 
     def get_object(self, true_state: str, size=(0.5, 0.5), pos=(0, 0)) -> visual.ImageStim:
+        """Display an image corresponding to the specified object letter (W, X, Y, Z, Wp, Xp, Yp, Zp)."""
         stim = self.object_stims[true_state]
-        width, height = self.win.size
-        a_r = width/height
-        stim.size = (size[0]/a_r, size[1])
+        orig_w, orig_h = stim.size
+        s_f = min(size[0] / orig_w, size[1] / orig_h)
+        stim.size = (orig_w * s_f, orig_h * s_f)
         stim.pos = pos
         return stim
 
