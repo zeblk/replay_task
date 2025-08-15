@@ -14,6 +14,7 @@ import numpy as np
 import pyglet
 from psychopy import core, event, visual
 
+from .trigger import MetaPort
 from .utils import (
     get_object_mapping,
     get_pos_and_seq,
@@ -22,6 +23,8 @@ from .utils import (
     ordinal_string,
     pos_and_seq_to_state,
 )
+
+actual_meg = False
 
 # Paths
 HERE = Path(__file__).parent
@@ -83,16 +86,22 @@ class AppliedLearning:
     scrambling_rule: Dict[str, int] = field(init=False)
     object_mapping: Dict[str, str] = field(init=False)
     object_stims: Dict[str, visual.ImageStim] = field(init=False)
+    meg: MetaPort = field(init=False)
 
     def __post_init__(self) -> None:
+        # Create scrambling rule and object mapping, if they don't already exist
         self.scrambling_rule = get_scrambling_rule(self.subject_id)
         self.object_mapping = get_object_mapping(self.subject_id, 'applied_learning')
+        
         self.win = visual.Window(color="black",  size=(WIN_WIDTH, WIN_HEIGHT), units="norm")
         # self.win = visual.Window(color="black", size=(1920, 1080), fullscr=True, units="norm", allowGUI=False,)
         event.globalKeys.clear()
         event.globalKeys.add(key="escape", func=self._exit)
 
-        # open behavioral data file
+        # Create MEG trigger object
+        self.meg = MetaPort(self.subject_id, actual_meg)
+
+        # Open behavioral data file
         os.makedirs('behavior_data', exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         file_name = f"subject_{self.subject_id}_applied_learning_behavior_{timestamp}.csv"
@@ -144,6 +153,7 @@ class AppliedLearning:
 
     def close(self) -> None:
         """Close open resources."""
+        self.meg.close() # close the trigger system
         try:
             self.win.close()
             visual.Window._closeAllWindows()
@@ -179,12 +189,14 @@ class AppliedLearning:
             for scrambled_position in sp_list:
                 # Fixation
                 visual.TextStim(self.win, text='+', height=0.3, pos=(0,0)).draw()
+                self.meg.write('fixation') # send trigger
                 self.win.flip()
                 core.wait(ISI)
 
                 # Object
                 state_name = self.reverse_state_lookup(scrambled_position)
                 self.get_object(state_name, size=(0.5,0.5), pos=(0,0)).draw()
+                self.meg.write(state_name) # send trigger
                 self.win.flip()
                 core.wait(OBJECT_DURATION)
 
@@ -226,11 +238,17 @@ class AppliedLearning:
             # Draw the question
             visual.TextStim(self.win, text='When the options appear, choose the one that comes later in the same true sequence.', 
                             height=0.07, pos=(0,0)).draw()
+            self.meg.write('quiz_text') # send trigger
+            self.win.flip()
+            core.wait(2.0)
 
             # Draw the probe stimulus
+            visual.TextStim(self.win, text='When the options appear, choose the one that comes later in the same true sequence.', 
+                            height=0.07, pos=(0,0)).draw()
             self.get_object(probe_state, size=(0.5,0.5), pos=(0,.5)).draw()
 
-            # Present the probe stimulus alone for a long duration
+            # Present the probe stimulus alone for a duration
+            self.meg.write('probe_state') # send trigger
             self.win.flip()
             core.wait(PROBE_ALONE_DURATION)
 
@@ -239,6 +257,7 @@ class AppliedLearning:
             self.get_object(incorrect_state, size=(0.5,0.5), pos=((2*int(correct_on_left)-1)*.5,0)).draw()
             visual.TextStim(self.win, text='(Press left)', height=0.07, pos=(-.5,-.5)).draw()
             visual.TextStim(self.win, text='(Press right)', height=0.07, pos=(.5,-.5)).draw()
+            self.meg.write('quiz_choices') # send trigger
             self.win.flip()
             clock = core.Clock()
             key_data = event.waitKeys(maxWait=CHOICE_DURATION, keyList=["left", "right", "escape"], timeStamped=clock)
@@ -252,10 +271,13 @@ class AppliedLearning:
                 chosen_obj = None
 
                 visual.TextStim(self.win, text='Too slow. Respond faster.', height=0.1, pos=(0,0)).draw()
+                self.meg.write('timeout_message') # send trigger
                 self.win.flip()
                 core.wait(2.0)
             else:
                 key, rt = key_data[0]
+                self.meg.write(key + '_press') # send trigger
+
                 sj_correctness = ((key == "left") and correct_on_left) or ((key == "right") and (not correct_on_left))
                 chosen_state = correct_state if (key == "left" and correct_on_left or key=="right" and not correct_on_left) else incorrect_state
                 chosen_obj = self.object_mapping[chosen_state][1:]

@@ -12,7 +12,10 @@ from typing import Dict
 
 from psychopy import core, event, visual
 
+from .trigger import MetaPort
 from .utils import SESSION2_OBJECTS
+
+actual_meg = False
 
 # Paths and constants
 HERE = Path(__file__).parent
@@ -48,12 +51,16 @@ class FunctionalLocalizer:
     behavior_writer: csv.writer = field(init=False)
     object_stims: Dict[str, visual.ImageStim] = field(init=False)
     rng: random.Random = field(init=False)
-
+    meg: MetaPort = field(init=False)
+    
     def __post_init__(self) -> None:
         self.win = visual.Window(color="black", size=(WIN_WIDTH, WIN_HEIGHT), units="norm")
         # self.win = visual.Window(color="black", size=(1920, 1080), fullscr=True, units="norm", allowGUI=False,)
         event.globalKeys.clear()
         event.globalKeys.add(key="escape", func=self._exit)
+
+        # Create MEG trigger object
+        self.meg = MetaPort(self.subject_id, actual_meg)
 
         os.makedirs("behavior_data", exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -89,6 +96,7 @@ class FunctionalLocalizer:
             self.object_stims[obj_name] = visual.ImageStim(self.win, image=str(img_path))
 
     def close(self) -> None:
+        self.meg.close() # close the trigger system
         try:
             self.win.close()
             visual.Window._closeAllWindows()
@@ -137,6 +145,7 @@ class FunctionalLocalizer:
 
             # Show image
             self.get_object(obj_name).draw()
+            self.meg.write(obj_name) # send trigger
             self.win.flip()
             core.wait(image_duration)
 
@@ -149,14 +158,16 @@ class FunctionalLocalizer:
 
             text_label = text_name[1:].capitalize()
             visual.TextStim(self.win, text=text_label, color="white", height=0.1, pos=(0, 0)).draw()
+            self.meg.write(text_label) # send trigger
             self.win.flip()
 
             resp_clock = core.Clock()
             keys = event.waitKeys(maxWait=TEXT_DURATION, keyList=[CORRECT_KEY, INCORRECT_KEY], timeStamped=resp_clock)
-            self.win.flip()
 
             if keys:
                 key, rt = keys[0]
+                self.meg.write(key + '_press') # send trigger
+
                 correct = (key == CORRECT_KEY and is_match) or (key == INCORRECT_KEY and not is_match)
                 feedback = "Correct" if correct else "Incorrect"
                 self.behavior_writer.writerow(
@@ -170,10 +181,12 @@ class FunctionalLocalizer:
 
             visual.TextStim(self.win, text=feedback, color="white", height=0.1, pos=(0, 0)).draw()
             self.win.flip()
+            self.meg.write('feedback_message') # send trigger
             core.wait(FEEDBACK_DURATION)
 
             iti = self.rng.uniform(ITI_MIN, ITI_MAX)
             visual.TextStim(self.win, text="+", color="white", height=0.2, pos=(0, 0)).draw()
+            self.meg.write('fixation') # send trigger
             self.win.flip()
             core.wait(iti)
 
