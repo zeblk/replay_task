@@ -16,6 +16,7 @@ from .trigger import MetaPort
 from .utils import SESSION2_OBJECTS
 
 actual_meg = False
+fullscreen = True
 
 # Paths and constants
 HERE = Path(__file__).parent
@@ -54,8 +55,11 @@ class FunctionalLocalizer:
     meg: MetaPort = field(init=False)
     
     def __post_init__(self) -> None:
-        self.win = visual.Window(color="black", size=(WIN_WIDTH, WIN_HEIGHT), units="norm")
-        # self.win = visual.Window(color="black", size=(1920, 1080), fullscr=True, units="norm", allowGUI=False,)
+        if fullscreen:
+            self.win = visual.Window(color="black", fullscr=True, units="norm", allowGUI=False)
+        else:
+            self.win = visual.Window(color="black", size=(WIN_WIDTH, WIN_HEIGHT), units="norm")
+
         event.globalKeys.clear()
         event.globalKeys.add(key="escape", func=self._exit)
 
@@ -122,6 +126,12 @@ class FunctionalLocalizer:
             trials.extend(perm)
         return trials
 
+    def draw_photodiode_square(self) -> None:
+        w, h = self.win.size
+        s = 50  # square size in pixels
+        visual.Rect(self.win, width=s, height=s, units='pix', fillColor='white',
+                    pos=(w/2 - s/2, -h/2 + s/2)).draw()
+
     def run(self) -> None:
         trial_order = self.build_trials()
         match_flags = [True] * 120 + [False] * 120
@@ -136,18 +146,12 @@ class FunctionalLocalizer:
         self.win.flip()
         keys = event.waitKeys(keyList=["space"])
 
-        # Start Functional Localizer main trial loop
+        # Functional Localizer main trial loop
 
         for trial_num, obj_name in enumerate(trial_order, start=1):
             event.clearEvents()
             is_match = match_flags[trial_num - 1]
             image_duration = self.rng.uniform(IMAGE_MIN, IMAGE_MAX)
-
-            # Show image
-            self.get_object(obj_name).draw()
-            self.meg.write(obj_name) # send trigger
-            self.win.flip()
-            core.wait(image_duration)
 
             # Determine text name
             if is_match:
@@ -156,11 +160,25 @@ class FunctionalLocalizer:
                 others = [o for o in SESSION2_OBJECTS if o != obj_name]
                 text_name = self.rng.choice(others)
 
+            # Show image
+            self.get_object(obj_name).draw()
+            self.draw_photodiode_square()
+            self.meg.write(obj_name) # send trigger
+            self.win.flip()
+            core.wait(image_duration)
+
+            # 50 ms between image and text, to give a break in the photodiode square
+            self.win.flip()
+            core.wait(0.05)
+
+            # Show name of object
             text_label = text_name[1:].capitalize()
             visual.TextStim(self.win, text=text_label, color="white", height=0.1, pos=(0, 0)).draw()
+            self.draw_photodiode_square()
             self.meg.write(text_label) # send trigger
             self.win.flip()
 
+            # Get keypress from user
             resp_clock = core.Clock()
             keys = event.waitKeys(maxWait=TEXT_DURATION, keyList=[CORRECT_KEY, INCORRECT_KEY], timeStamped=resp_clock)
 

@@ -25,6 +25,7 @@ from .utils import (
 )
 
 actual_meg = False
+fullscreen = True
 
 # Paths
 HERE = Path(__file__).parent
@@ -93,8 +94,11 @@ class AppliedLearning:
         self.scrambling_rule = get_scrambling_rule(self.subject_id)
         self.object_mapping = get_object_mapping(self.subject_id, 'applied_learning')
         
-        self.win = visual.Window(color="black",  size=(WIN_WIDTH, WIN_HEIGHT), units="norm")
-        # self.win = visual.Window(color="black", size=(1920, 1080), fullscr=True, units="norm", allowGUI=False,)
+        if fullscreen:
+            self.win = visual.Window(color="black", fullscr=True, units="norm", allowGUI=False)
+        else:
+            self.win = visual.Window(color="black", size=(WIN_WIDTH, WIN_HEIGHT), units="norm")
+
         event.globalKeys.clear()
         event.globalKeys.add(key="escape", func=self._exit)
 
@@ -173,6 +177,13 @@ class AppliedLearning:
         stim.pos = pos
         return stim
 
+    def draw_photodiode_square(self) -> None:
+        w, h = self.win.size
+        s = 50  # square size in pixels
+        visual.Rect(self.win, width=s, height=s, units='pix', fillColor='white',
+                    pos=(w/2 - s/2, -h/2 + s/2)).draw()
+
+
     def reverse_state_lookup(self, scrambled_position):
         """ Finds the unscrambled state that maps to scrambled_position. """
         # Uses reverse dictionary lookup.
@@ -196,6 +207,7 @@ class AppliedLearning:
                 # Object
                 state_name = self.reverse_state_lookup(scrambled_position)
                 self.get_object(state_name, size=(0.5,0.5), pos=(0,0)).draw()
+                self.draw_photodiode_square()
                 self.meg.write(state_name) # send trigger
                 self.win.flip()
                 core.wait(OBJECT_DURATION)
@@ -333,26 +345,7 @@ class AppliedLearning:
 
         # Do four runs
         for run in range(N_RUNS):
-            # # Phase 1
-            # for repeat in range(N_REPEATS):
-            #     visual.TextStim(self.win, text='Press space when you\'re ready to see the 1st scrambled sequence.', 
-            #                     height=0.1, pos=(0,0)).draw()
-            #     self.win.flip()
-            #     event.waitKeys(keyList=["space"])
-            #     scrambled_sequences_screen(which_seq = 1)
 
-            # # Phase 2
-            # for repeat in range(N_REPEATS):
-            #     visual.TextStim(self.win, text='Press space when you\'re ready to see the 2nd scrambled sequence.', 
-            #                     height=0.1, pos=(0,0)).draw()
-            #     self.win.flip()
-            #     event.waitKeys(keyList=["space"])
-            #     scrambled_sequences_screen(which_seq = 2)
-
-            # for probe_ix in range(10):
-            #     quiz_screen()
-            #     self.win.flip()
-            #     core.wait(ISI)
             # Reshuffle pictures for each run (except the first)
             if run > 0:
                 # Get new object mapping (pictures change but rule stays the same)
