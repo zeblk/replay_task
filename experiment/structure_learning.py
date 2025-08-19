@@ -87,8 +87,8 @@ class StructureLearning:
     def __post_init__(self) -> None:
         self.scrambling_rule = get_scrambling_rule(self.subject_id)
         self.object_mapping = get_object_mapping(self.subject_id, 'structure_learning')
-        self.win = visual.Window(color="black",  size=(WIN_WIDTH, WIN_HEIGHT), units="norm")
-        # self.win = visual.Window(color="black", size=(1920, 1080), fullscr=True, units="norm", allowGUI=False,)
+        # self.win = visual.Window(color="black",  size=(WIN_WIDTH, WIN_HEIGHT), units="norm")
+        self.win = visual.Window(color="black", size=(1920, 1080), fullscr=True, units="norm", allowGUI=False,)
         event.globalKeys.clear()
         event.globalKeys.add(key="escape", func=self._exit)
 
