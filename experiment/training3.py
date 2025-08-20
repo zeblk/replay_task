@@ -29,6 +29,7 @@ BEHAVIOR_DIR = ROOT_DIR.parent / "behavior_data"
 WIN_WIDTH = 900
 WIN_HEIGHT = 700
 
+# For participants
 MESSAGE_DURATION = 1.0
 SCRAMBLED_REPEATS = 5
 OBJECT_DURATION = 0.9
@@ -38,7 +39,7 @@ ISI = 1.0
 ITI = 1.5
 
 # For debugging
-# MESSAGE_DURATION = 0.3
+# MESSAGE_DURATION = 0.1
 # SCRAMBLED_REPEATS = 5
 # OBJECT_DURATION = 0.1
 # REST_DURATION = .1
@@ -185,17 +186,26 @@ class Training:
             return ['left', 'right']
 
         def screen3():
-            scrambled_sequences_screen()
+            sequences_screen('Scrambled')
             return ['left', 'right']
 
         def screen4():
-            visual.TextStim(self.win, text='Then you will have to answer questions, like: does ' + self.object_mapping['W'][1:] +
-                            ' come before or after ' + self.object_mapping['X'][1:] + '?', height=0.1, pos=(0, .6)).draw()
-            visual.TextStim(self.win, text='But the questions will be about the unscrambled order, not the order you saw.', height=0.1, pos=(0, 0), bold=True).draw()
-            visual.TextStim(self.win, text="So you'll have to mentally reorder the sequences to answer these questions.", height=0.1, pos=(0, -.5)).draw()
+            visual.TextStim(self.win, text='Using a rule (which you will learn), you\'ll have to *mentally* re-order ' + \
+            ' the pictures into two *true* sequences, like this...', height=0.1, pos=(0, 0)).draw()
             return ['left', 'right']
 
         def screen5():
+            sequences_screen('True')
+            return ['left', 'right']
+
+        def screen6():
+            visual.TextStim(self.win, text='Then you will have to answer questions, like: does ' + self.object_mapping['W'][1:] +
+                            ' come before or after ' + self.object_mapping['X'][1:] + '?', height=0.1, pos=(0, .6)).draw()
+            visual.TextStim(self.win, text='But the questions will be about the true order, not the order you saw.', height=0.1, pos=(0, 0), bold=True).draw()
+            visual.TextStim(self.win, text="So you'll have to mentally reorder the sequences to answer these questions.", height=0.1, pos=(0, -.5)).draw()
+            return ['left', 'right']
+
+        def screen7():
             visual.TextStim(self.win, text='Here is the rule. We will help you learn it today.', height=0.12, pos=(0, .7), bold=True).draw()
 
             name_mapping = {'W': 'A', 'X': 'B', 'Y': 'C', 'Z': 'D', 'Wp': '1', 'Xp': '2', 'Yp': '3', 'Zp': '4'}
@@ -213,7 +223,7 @@ class Training:
             visual.TextStim(self.win, text='1-2-3-4', height=0.12, pos=(0, -.5)).draw()
             return ['left', 'right']
 
-        def screen6():
+        def screen8():
             visual.TextStim(self.win, text='Tomorrow, you will apply the same rule to unscramble new sequences of pictures.', height=0.1, pos=(0, .5)).draw()
             visual.TextStim(self.win, text="You will earn points by applying today's rule to tomorrow's pictures.", height=0.1, pos=(0, .05)).draw()
             visual.TextStim(self.win, text="So it's really important to learn the rule today.", height=0.1, pos=(0, -.35)).draw()
@@ -277,28 +287,42 @@ class Training:
                 height=0.1, pos=(0, -.2)
             ).draw()
 
-        def scrambled_sequences_screen():
+        def sequences_screen(seq_type: str, states_to_show: dict = None):
             """
-            Show scrambled sequences with proper positioning.
+            Show sequences ('Scrambled') or ('True') with proper positioning.
             """
+            if not seq_type in ['Scrambled', 'True']:
+                raise Exception('Invalid seq_type in sequences_screen')
+
+            if not states_to_show:
+                states_to_show = {s_name: True for s_name in true_state_names}
+
             # Clear the screen first
             self.win.flip()
             
             # Show sequence 1 title, then wait briefly
-            visual.TextStim(self.win, text='Scrambled sequence 1', height=0.12, pos=(0,0)).draw()
+            visual.TextStim(self.win, text=seq_type + ' sequence 1', height=0.12, pos=(0,0)).draw()
             self.win.flip()
             core.wait(1)  # Brief pause to read title
             
             # Sequence 1: positions [0..3] with fixation before each stimulus
-            for scrambled_position in [0, 1, 2, 3]:
+            for position in [0, 1, 2, 3]:
                 # Fixation cross (no sequence title)
                 visual.TextStim(self.win, text='+', color='white', height=0.3, pos=(0,0)).draw()
                 self.win.flip()
                 core.wait(ISI)
 
-                # Show stimulus
-                state_name = self.reverse_state_lookup(scrambled_position)
-                self.get_object(state_name, size=(0.5, 0.5), pos=(0,0)).draw()
+                # Get state name from its position
+                if seq_type == 'Scrambled':
+                    state_name = self.reverse_state_lookup(position)
+                else:
+                    state_name = true_state_names[position]
+                
+                # Draw stimulus or text name
+                if states_to_show[state_name]:
+                    self.get_object(state_name, size=(0.5, 0.5), pos=(0,0)).draw()
+                else:
+                    visual.TextStim(self.win, text=state_name, height=0.1, pos=(0,0)).draw()
                 self.win.flip()
                 core.wait(OBJECT_DURATION)
             
@@ -307,20 +331,28 @@ class Training:
             core.wait(ISI)
 
             # Show sequence 2 title, then wait briefly  
-            visual.TextStim(self.win, text='Scrambled sequence 2', height=0.12, pos=(0,0)).draw()
+            visual.TextStim(self.win, text=seq_type + ' sequence 2', height=0.12, pos=(0,0)).draw()
             self.win.flip()
             core.wait(1)  # Brief pause to read title
 
             # Sequence 2: positions [4..7] with fixation before each stimulus
-            for scrambled_position in [4, 5, 6, 7]:
+            for position in [4, 5, 6, 7]:
                 # Fixation cross (no sequence title)
                 visual.TextStim(self.win, text='+', color='white', height=0.3, pos=(0,0)).draw()
                 self.win.flip()
                 core.wait(ISI)
 
-                # Show stimulus
-                state_name = self.reverse_state_lookup(scrambled_position)
-                self.get_object(state_name, size=(0.5, 0.5), pos=(0,0)).draw()
+                # Get state name from its position
+                if seq_type == 'Scrambled':
+                    state_name = self.reverse_state_lookup(position)
+                else:
+                    state_name = true_state_names[position]
+                
+                # Draw stimulus or text name
+                if states_to_show[state_name]:
+                    self.get_object(state_name, size=(0.5, 0.5), pos=(0,0)).draw()
+                else:
+                    visual.TextStim(self.win, text=state_name, height=0.1, pos=(0,0)).draw()
                 self.win.flip()
                 core.wait(OBJECT_DURATION)
 
@@ -479,10 +511,10 @@ class Training:
             return result
 
         # SIMPLIFIED retry wrappers
-        def seq_quiz_screen(true_state: str):
+        def seq_quiz_screen(true_state: str, states_to_show: dict):
             """
             Retry wrapper for sequence quiz.
-            If incorrect: shows rule_screen, then scrambled_sequences_screen, then retries.
+            If incorrect: shows rule_screen, then sequences_screen, then retries.
             """
             max_retries = 5
             retry_count = 0
@@ -495,16 +527,16 @@ class Training:
                 # If incorrect: show rule, then full sequences, then retry
                 rule_screen(true_state=true_state)
                 left_right_msg(['space'])
-                scrambled_sequences_screen()
+                sequences_screen('Scrambled', states_to_show)
                 retry_count += 1
             
             print(f"Warning: Maximum retries exceeded for sequence quiz on state {true_state}")
             return result
 
-        def order_quiz_screen(true_state_1: str, true_state_2: str):
+        def order_quiz_screen(true_state_1: str, true_state_2: str, states_to_show: dict):
             """
             Retry wrapper for order quiz.
-            If incorrect: shows rule_screen for the first state, then scrambled_sequences_screen, then retries.
+            If incorrect: shows rule_screen for the first state, then sequences_screen, then retries.
             """
             max_retries = 5
             retry_count = 0
@@ -517,7 +549,7 @@ class Training:
                 # If incorrect: show rule for first state, then full sequences, then retry
                 rule_screen(true_state=true_state_1)
                 left_right_msg(['space'])
-                scrambled_sequences_screen()
+                sequences_screen('Scrambled', states_to_show)
                 retry_count += 1
             
             print(f"Warning: Maximum retries exceeded for order quiz on states {true_state_1}, {true_state_2}")
@@ -549,7 +581,7 @@ class Training:
 
         # ================= Intro navigator =================
         
-        intro_screens = [screen1, screen2, screen3, screen4, screen5, screen6]
+        intro_screens = [screen1, screen2, screen3, screen4, screen5, screen6, screen7, screen8]
         screen_ix, done_intro = 0, False
         while not done_intro:
             available_keys = intro_screens[screen_ix]()
@@ -593,11 +625,12 @@ class Training:
             ]
             return random.choice(pairs) if pairs else None
 
-        def permute_and_show_seqs():
-            ''' Assumes quiz_state_1 and quiz_state_2 come from the same true sequence
-            '''
-            visual.TextStim(self.win, text='Now we\'ll show a *new sequence* of pictures.', height=0.1, pos=(0, .3)).draw()
-            visual.TextStim(self.win, text='The rule always stays the same.', height=0.1, pos=(0, 0)).draw()
+        def reshuffle_pictures():
+
+            visual.TextStim(self.win, text='Now we\'ll show a *new sequence* of pictures.', height=0.1, pos=(0, .6)).draw()
+            visual.TextStim(self.win, text='The rule always stays the same.', height=0.1, pos=(0, .4)).draw()
+            visual.TextStim(self.win, text='Sometimes we won\'t show all the pictures in the sequence, ' + \
+                'to keep things simpler.', height=0.1, pos=(0, 0)).draw()
             visual.TextStim(self.win, text="(Press space to continue)", height=0.07, pos=(0, -.7)).draw()
             self.win.flip()
             event.waitKeys(keyList=["space"])
@@ -605,14 +638,13 @@ class Training:
             # Re-permute the visual objects and show the scrambled sequence
             self.object_mapping = get_object_mapping(self.subject_id, 'training', force_new=True)
             self.preload_images()
-            scrambled_sequences_screen()
 
-        def do_quizzes(learning_levels, quiz_state_1, quiz_state_2):
+
+        def do_quizzes(learning_levels, quiz_state_1, quiz_state_2, states_to_show):
             ''' Assumes quiz_state_1 and quiz_state_2 come from the same true sequence
             '''
-
             # Do a sequence-membership quiz
-            quiz_result_1 = seq_quiz_screen(true_state=quiz_state_1)
+            quiz_result_1 = seq_quiz_screen(true_state=quiz_state_1, states_to_show=states_to_show)
             if quiz_result_1 == "escape":
                 self.close()
                 core.quit()
@@ -632,7 +664,7 @@ class Training:
                 left_right_msg(['space'])
 
             # Also do an order quiz
-            quiz_result_2 = order_quiz_screen(true_state_1=quiz_state_1, true_state_2=quiz_state_2)
+            quiz_result_2 = order_quiz_screen(true_state_1=quiz_state_1, true_state_2=quiz_state_2, states_to_show=states_to_show)
             if quiz_result_2 == "escape":
                 self.close()
                 core.quit()
@@ -674,8 +706,16 @@ class Training:
 
                 # Quiz on train states (randomize which is no1 and which is no2)
                 quiz_state_1, quiz_state_2 = random.sample([train_state_1, train_state_2], k=2)
-                permute_and_show_seqs()
-                do_quizzes(learning_levels, quiz_state_1, quiz_state_2)
+
+                # Only show the states currently being trained
+                states_to_show = {s_name: False for s_name in true_state_names}
+                states_to_show[quiz_state_1] = True
+                states_to_show[quiz_state_2] = True
+                reshuffle_pictures()
+                sequences_screen('Scrambled', states_to_show)
+
+                # Do the quizzes
+                do_quizzes(learning_levels, quiz_state_1, quiz_state_2, states_to_show)
 
                 # Also quiz on any two other well-learned states, if there are any two belonging to the same sequence
                 strong_states = set(states_above_level(learning_levels, 1))
@@ -683,13 +723,18 @@ class Training:
                 strong_pair = random_same_seq_pair(strong_states_diff)
                 if strong_pair:
                     quiz_state_1, quiz_state_2 = strong_pair
-                    do_quizzes(learning_levels, quiz_state_1, quiz_state_2)
+                    states_to_show = {s_name: False for s_name in true_state_names}
+                    states_to_show[quiz_state_1] = True
+                    states_to_show[quiz_state_2] = True
+                    sequences_screen('Scrambled', states_to_show)
+                    do_quizzes(learning_levels, quiz_state_1, quiz_state_2, states_to_show)
 
         # ================= Open quizzes on all states, under a stable mapping =================
 
-        permute_and_show_seqs()
+        reshuffle_pictures()
+        sequences_screen('Scrambled', {s_name: True for s_name in true_state_names})
 
-        for _ in range(40):
+        for _ in range(10):
             quiz_state_1 = self.rng.choice(true_state_names)
             quiz_state_2 = random_state_from_same_seq(quiz_state_1)
 
