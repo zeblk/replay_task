@@ -52,8 +52,8 @@ ITI = 1.5
 
 N_RUNS = 3
 N_REPEATS = 3
-PROBE_ALONE_DURATION = 0.3
-CHOICE_DURATION = 1
+PROBE_ALONE_DURATION = 3
+CHOICE_DURATION = 5
 
 true_state_names = ['W', 'X', 'Y', 'Z', 'Wp', 'Xp', 'Yp', 'Zp']
 scrambled_positions = [0, 1, 2, 3, 4, 5, 6, 7]
@@ -95,7 +95,7 @@ class AppliedLearning:
         self.object_mapping = get_object_mapping(self.subject_id, 'applied_learning')
         
         if fullscreen:
-            self.win = visual.Window(color="black", fullscr=True, units="norm", allowGUI=False)
+            self.win = visual.Window(color="black", fullscr=True, units="norm")
         else:
             self.win = visual.Window(color="black", size=(WIN_WIDTH, WIN_HEIGHT), units="norm")
 
@@ -349,7 +349,7 @@ class AppliedLearning:
             # Reshuffle pictures for each run (except the first)
             if run > 0:
                 # Get new object mapping (pictures change but rule stays the same)
-                self.object_mapping = get_object_mapping(self.subject_id, 'structure_learning', force_new=True)
+                self.object_mapping = get_object_mapping(self.subject_id, 'applied_learning', force_new=True)
                 # Reload images with new mapping
                 self.preload_images()
             
