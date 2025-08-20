@@ -22,29 +22,35 @@ from .utils import (
     ordinal_string,
 )
 
+fullscreen = True
+GLOBAL_DEBUG = False # Do not use this when running subjects. It makes all quiz question answers magically correct.
+
 # Paths & constants
 ROOT_DIR = Path(__file__).resolve().parent
 IMAGES_DIR = ROOT_DIR / "images"
 BEHAVIOR_DIR = ROOT_DIR.parent / "behavior_data"
-WIN_WIDTH = 900
-WIN_HEIGHT = 700
+WIN_WIDTH = 800
+WIN_HEIGHT = 600
 
-MESSAGE_DURATION = 1.0
-SCRAMBLED_REPEATS = 5
-OBJECT_DURATION = 0.9
-REST_DURATION = 1.0
-N_OBJECTS = 8
-ISI = 1.0
-ITI = 1.5
 
-# For debugging
-# MESSAGE_DURATION = 0.3
-# SCRAMBLED_REPEATS = 5
-# OBJECT_DURATION = 0.1
-# REST_DURATION = .1
-# N_OBJECTS = 8
-# ISI = .1
-# ITI = .1
+if GLOBAL_DEBUG:
+    # For debugging
+    MESSAGE_DURATION = 0.1
+    SCRAMBLED_REPEATS = 5
+    OBJECT_DURATION = 0.1
+    REST_DURATION = .1
+    N_OBJECTS = 8
+    ISI = .1
+    ITI = .1
+else:
+    # For participants
+    MESSAGE_DURATION = 1.0
+    SCRAMBLED_REPEATS = 5
+    OBJECT_DURATION = 0.9
+    REST_DURATION = 1.0
+    N_OBJECTS = 8
+    ISI = 1.0
+    ITI = 1.5
 
 true_state_names = ['W', 'X', 'Y', 'Z', 'Wp', 'Xp', 'Yp', 'Zp']
 scrambled_positions = [0, 1, 2, 3, 4, 5, 6, 7]
@@ -79,8 +85,12 @@ class Training:
         self.scrambling_rule = get_scrambling_rule(self.subject_id)
         self.inv_scrambling_rule = {v: k for k, v in self.scrambling_rule.items()}
         self.object_mapping = get_object_mapping(self.subject_id, 'training')
-        self.win = visual.Window(color="black",  size=(WIN_WIDTH, WIN_HEIGHT), units="norm")
-        self.win = visual.Window(color="black", size=(1920, 1080), fullscr=True, units="norm", allowGUI=False,)
+
+        if fullscreen:
+            self.win = visual.Window(color="black", fullscr=True, units="norm", allowGUI=False)
+        else:
+            self.win = visual.Window(color="black", size=(WIN_WIDTH, WIN_HEIGHT), units="norm")
+
         event.globalKeys.clear()
         event.globalKeys.add(key="escape", func=self._exit)
 
@@ -287,7 +297,7 @@ class Training:
             # Show sequence 1 title, then wait briefly
             visual.TextStim(self.win, text='Scrambled sequence 1', height=0.12, pos=(0,0)).draw()
             self.win.flip()
-            core.wait(1)  # Brief pause to read title
+            core.wait(MESSAGE_DURATION)  # Brief pause to read title
             
             # Sequence 1: positions [0..3] with fixation before each stimulus
             for scrambled_position in [0, 1, 2, 3]:
@@ -309,7 +319,7 @@ class Training:
             # Show sequence 2 title, then wait briefly  
             visual.TextStim(self.win, text='Scrambled sequence 2', height=0.12, pos=(0,0)).draw()
             self.win.flip()
-            core.wait(1)  # Brief pause to read title
+            core.wait(MESSAGE_DURATION)  # Brief pause to read title
 
             # Sequence 2: positions [4..7] with fixation before each stimulus
             for scrambled_position in [4, 5, 6, 7]:
@@ -359,6 +369,9 @@ class Training:
 
             chosen_seq = 1 if key == "left" else 2
             correct_bool = ((key == "left") and (true_seq == 1)) or ((key == "right") and (true_seq == 2))
+
+            if GLOBAL_DEBUG:
+                correct_bool = True
             
             if correct_bool:
                 visual.TextStim(self.win, text="Correct!", height=0.1, pos=(0, 0)).draw()
@@ -433,6 +446,9 @@ class Training:
             first_on_left = true_pos_1 < true_pos_2
             correct_bool = ((key == "left") and (not first_on_left)) or ((key == "right") and first_on_left)
             
+            if GLOBAL_DEBUG:
+                correct_bool = True
+
             if correct_bool:
                 visual.TextStim(self.win, text="Correct!", height=0.1, pos=(0, 0)).draw()
                 self.win.flip()
@@ -488,7 +504,12 @@ class Training:
             retry_count = 0
             
             while retry_count < max_retries:
+
                 result = seq_quiz_screen_base(true_state=true_state)
+
+                print(f'retry_count: {retry_count}')
+                print(f'result: {result}')
+
                 if result in ("correct", "escape"):
                     return result
                     
@@ -510,7 +531,12 @@ class Training:
             retry_count = 0
             
             while retry_count < max_retries:
+
                 result = order_quiz_screen_base(true_state_1=true_state_1, true_state_2=true_state_2)
+
+                print(f'retry_count: {retry_count}')
+                print(f'result: {result}')
+
                 if result in ("correct", "escape"):
                     return result
                     
@@ -661,7 +687,11 @@ class Training:
         while current_lowest_level < 3:
 
             # Train two states, where at least one comes from the least-learned tier
-            train_state_1 = self.rng.choice(states_at_level(learning_levels, current_lowest_level))
+            print(f"learning_levels: {learning_levels}")
+            print(f"current_lowest_level: {current_lowest_level}")
+            states_at_lowest_level = states_at_level(learning_levels, current_lowest_level)
+            print(f"states_at_lowest_level: {states_at_lowest_level}")
+            train_state_1 = self.rng.choice(states_at_lowest_level)
             rule_screen(true_state=train_state_1)
             left_right_msg(['space'])
 
@@ -669,8 +699,11 @@ class Training:
             rule_screen(true_state=train_state_2)
             left_right_msg(['space'])
 
-            # Get participants up to level 2 proficiency on these two parts of the rule
-            while learning_levels[train_state_1] < 2 or learning_levels[train_state_2] < 2:
+            # Get participants up to level 3 proficiency on these two parts of the rule
+            while learning_levels[train_state_1] < 3 or learning_levels[train_state_2] < 3:
+                print(f"train_state_1: {train_state_1}")
+                print(f"train_state_2: {train_state_2}")
+                print(f"learning_levels: {learning_levels}")
 
                 # Quiz on train states (randomize which is no1 and which is no2)
                 quiz_state_1, quiz_state_2 = random.sample([train_state_1, train_state_2], k=2)
@@ -685,8 +718,15 @@ class Training:
                     quiz_state_1, quiz_state_2 = strong_pair
                     do_quizzes(learning_levels, quiz_state_1, quiz_state_2)
 
+            # Update learning levels
+            current_lowest_level = min(learning_levels.values())
+
         # ================= Open quizzes on all states, under a stable mapping =================
 
+        visual.TextStim(self.win, text="Now we will do many quiz questions under stable sequences!", height=0.1, pos=(0, 0.0)).draw()
+        visual.TextStim(self.win, text="Press space to continue.", height=0.08, pos=(0, -0.5)).draw()
+        self.win.flip()
+        event.waitKeys(keyList=["space"])
         permute_and_show_seqs()
 
         for _ in range(40):

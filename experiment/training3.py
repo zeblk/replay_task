@@ -639,6 +639,15 @@ class Training:
             self.object_mapping = get_object_mapping(self.subject_id, 'training', force_new=True)
             self.preload_images()
 
+        def no_reshuffle():
+            ''' Display messages indicating that the pictures are NOT reshuffling 
+            '''
+            visual.TextStim(self.win, text='Now we\'ll show you a couple more pictures in the SAME scrambled sequences.', height=0.1, pos=(0, .4)).draw()
+            visual.TextStim(self.win, text="(Press space to continue)", height=0.07, pos=(0, -.7)).draw()
+            self.win.flip()
+            event.waitKeys(keyList=["space"])
+
+
 
         def do_quizzes(learning_levels, quiz_state_1, quiz_state_2, states_to_show):
             ''' Assumes quiz_state_1 and quiz_state_2 come from the same true sequence
@@ -720,21 +729,25 @@ class Training:
                 # Also quiz on any two other well-learned states, if there are any two belonging to the same sequence
                 strong_states = set(states_above_level(learning_levels, 1))
                 strong_states_diff = list(strong_states - set([train_state_1, train_state_2]))
-                strong_pair = random_same_seq_pair(strong_states_diff)
-                if strong_pair:
-                    quiz_state_1, quiz_state_2 = strong_pair
-                    states_to_show = {s_name: False for s_name in true_state_names}
-                    states_to_show[quiz_state_1] = True
-                    states_to_show[quiz_state_2] = True
-                    sequences_screen('Scrambled', states_to_show)
-                    do_quizzes(learning_levels, quiz_state_1, quiz_state_2, states_to_show)
+                if strong_states_diff:
+                    for _ in range(len(strong_states)):
+                        strong_pair = random_same_seq_pair(strong_states)
+                        quiz_state_1, quiz_state_2 = strong_pair
+
+                        states_to_show = {s_name: False for s_name in true_state_names}
+                        states_to_show[quiz_state_1] = True
+                        states_to_show[quiz_state_2] = True
+                        
+                        no_reshuffle()
+                        sequences_screen('Scrambled', states_to_show)
+                        do_quizzes(learning_levels, quiz_state_1, quiz_state_2, states_to_show)
 
         # ================= Open quizzes on all states, under a stable mapping =================
 
         reshuffle_pictures()
         sequences_screen('Scrambled', {s_name: True for s_name in true_state_names})
 
-        for _ in range(10):
+        for _ in range(40):
             quiz_state_1 = self.rng.choice(true_state_names)
             quiz_state_2 = random_state_from_same_seq(quiz_state_1)
 
