@@ -31,8 +31,8 @@ FEEDBACK_DURATION = 1.0
 ITI_MIN = 1.0
 ITI_MAX = 1.5
 
-CORRECT_KEY = "p"
-INCORRECT_KEY = "q"
+CORRECT_KEY = "1"
+INCORRECT_KEY = "2"
 
 warnings.filterwarnings(
     "ignore",
@@ -142,7 +142,7 @@ class FunctionalLocalizer:
         visual.TextStim(self.win, text="A picture will appear, followed by a word. " + \
             "If the word *matches* the picture, press " + CORRECT_KEY + ". " + \
             "Otherwise, press " + INCORRECT_KEY + ". ", color="white", height=0.1, pos=(0, .3)).draw()
-        visual.TextStim(self.win, text="(Press space to begin)", color="white", height=0.08, pos=(0, -.6)).draw()
+        visual.TextStim(self.win, text="(get ready to begin)", color="white", height=0.08, pos=(0, -.6)).draw()
         self.win.flip()
         keys = event.waitKeys(keyList=["space"])
 
