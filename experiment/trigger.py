@@ -33,7 +33,7 @@ class MetaPort:
 
         if self.actual_meg:
             try:
-                self.actual_meg = psychopy.parallel.ParallelPort(16376)
+                self.actual_meg = psychopy.parallel.ParallelPort(0x0378)
             except RuntimeError:
                 print("ERROR: could not connect to the parallel port 0x0378")
                 sys.exit(1)
