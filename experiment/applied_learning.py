@@ -337,7 +337,8 @@ class AppliedLearning:
             self.behavior_file.flush()
 
 
-        ####################### Do the applied learning task
+        ################ Do the applied learning task ################
+
         visual.TextStim(self.win, text='Now you will see today\'s stimuli in their scrambled order.', height=0.1, pos=(0,.15)).draw()
         visual.TextStim(self.win, text='Press space when ready.', height=0.1, pos=(0,-.15)).draw()
         self.win.flip()

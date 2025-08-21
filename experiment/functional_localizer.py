@@ -17,6 +17,31 @@ from .utils import SESSION2_OBJECTS
 
 actual_meg = False
 fullscreen = True
+GLOBAL_DEBUG = False # Do not use when running participants!
+
+CORRECT_KEY = "p"
+INCORRECT_KEY = "q"
+
+
+N_BLOCKS = 3
+N_TRIALS = 240 # Must be a multiple of N_BLOCKS*len(SESSION2_OBJECTS)
+
+if GLOBAL_DEBUG:
+    # For debugging
+    IMAGE_MIN = 0.1
+    IMAGE_MAX = 0.1
+    TEXT_DURATION = .1
+    FEEDBACK_DURATION = 0.1
+    ITI_MIN = 0.1
+    ITI_MAX = 0.1
+else:
+    # For participants
+    IMAGE_MIN = 0.6
+    IMAGE_MAX = 0.8
+    TEXT_DURATION = 3.0
+    FEEDBACK_DURATION = 1.0
+    ITI_MIN = 1.0
+    ITI_MAX = 1.5
 
 # Paths and constants
 HERE = Path(__file__).parent
@@ -24,15 +49,6 @@ IMAGES_DIR = HERE / "images"
 WIN_WIDTH = 900
 WIN_HEIGHT = 700
 
-IMAGE_MIN = 0.6
-IMAGE_MAX = 0.8
-TEXT_DURATION = 3.0
-FEEDBACK_DURATION = 1.0
-ITI_MIN = 1.0
-ITI_MAX = 1.5
-
-CORRECT_KEY = "p"
-INCORRECT_KEY = "q"
 
 warnings.filterwarnings(
     "ignore",
@@ -55,6 +71,9 @@ class FunctionalLocalizer:
     meg: MetaPort = field(init=False)
     
     def __post_init__(self) -> None:
+        if N_TRIALS % (N_BLOCKS*len(SESSION2_OBJECTS)) != 0:
+            raise Exception('N_TRIALS must be divisible by N_BLOCKS*len(SESSION2_OBJECTS)')
+
         if fullscreen:
             self.win = visual.Window(color="black", fullscr=True, units="norm", allowGUI=False)
         else:
@@ -120,10 +139,14 @@ class FunctionalLocalizer:
         return stim
 
     def build_trials(self) -> list[str]:
-        trials = []
-        for _ in range(30):
-            perm = self.rng.sample(SESSION2_OBJECTS, len(SESSION2_OBJECTS))
-            trials.extend(perm)
+        trials = [[] for _ in range(N_BLOCKS)]
+        n_repeats_per_block = int(N_TRIALS / (N_BLOCKS * len(SESSION2_OBJECTS)))
+        
+        for i_block in range(N_BLOCKS):
+            for _ in range(n_repeats_per_block):
+                perm = self.rng.sample(SESSION2_OBJECTS, len(SESSION2_OBJECTS))
+                trials[i_block].extend(perm)
+
         return trials
 
     def draw_photodiode_square(self) -> None:
@@ -133,9 +156,12 @@ class FunctionalLocalizer:
                     pos=(w/2 - s/2, -h/2 + s/2)).draw()
 
     def run(self) -> None:
-        trial_order = self.build_trials()
-        match_flags = [True] * 120 + [False] * 120
+        block_list = self.build_trials()
+        match_flags = [True] * int(N_TRIALS/2) + [False] * int(N_TRIALS/2)
         self.rng.shuffle(match_flags)
+
+        # for trial_list in block_list:
+        #     print(trial_list)
 
         # Draw instructions
 
@@ -148,65 +174,72 @@ class FunctionalLocalizer:
 
         # Functional Localizer main trial loop
 
-        for trial_num, obj_name in enumerate(trial_order, start=1):
-            event.clearEvents()
-            is_match = match_flags[trial_num - 1]
-            image_duration = self.rng.uniform(IMAGE_MIN, IMAGE_MAX)
+        for trial_list in block_list:
+            for trial_num, obj_name in enumerate(trial_list, start=1):
+                event.clearEvents()
+                is_match = match_flags[trial_num - 1]
+                image_duration = self.rng.uniform(IMAGE_MIN, IMAGE_MAX)
 
-            # Determine text name
-            if is_match:
-                text_name = obj_name
-            else:
-                others = [o for o in SESSION2_OBJECTS if o != obj_name]
-                text_name = self.rng.choice(others)
+                # Determine text name
+                if is_match:
+                    text_name = obj_name
+                else:
+                    others = [o for o in SESSION2_OBJECTS if o != obj_name]
+                    text_name = self.rng.choice(others)
 
-            # Show image
-            self.get_object(obj_name).draw()
-            self.draw_photodiode_square()
-            self.meg.write(obj_name) # send trigger
+                # Show image
+                self.get_object(obj_name).draw()
+                self.draw_photodiode_square()
+                self.meg.write(obj_name) # send trigger
+                self.win.flip()
+                core.wait(image_duration)
+
+                # 50 ms between image and text, to give a break in the photodiode square
+                self.win.flip()
+                core.wait(0.05)
+
+                # Show name of object
+                text_label = text_name[1:].capitalize()
+                visual.TextStim(self.win, text=text_label, color="white", height=0.1, pos=(0, 0)).draw()
+                self.draw_photodiode_square()
+                self.meg.write(text_label) # send trigger
+                self.win.flip()
+
+                # Get keypress from user
+                resp_clock = core.Clock()
+                keys = event.waitKeys(maxWait=TEXT_DURATION, keyList=[CORRECT_KEY, INCORRECT_KEY], timeStamped=resp_clock)
+
+                if keys:
+                    key, rt = keys[0]
+                    self.meg.write(key + '_press') # send trigger
+
+                    correct = (key == CORRECT_KEY and is_match) or (key == INCORRECT_KEY and not is_match)
+                    feedback = "Correct" if correct else "Incorrect"
+                    self.behavior_writer.writerow(
+                        [self.subject_id, trial_num, obj_name, text_name, is_match, key, correct, rt]
+                    )
+                else:
+                    feedback = "please respond faster"
+                    self.behavior_writer.writerow(
+                        [self.subject_id, trial_num, obj_name, text_name, is_match, "", "", ""]
+                    )
+
+                visual.TextStim(self.win, text=feedback, color="white", height=0.1, pos=(0, 0)).draw()
+                self.win.flip()
+                self.meg.write('feedback_message') # send trigger
+                core.wait(FEEDBACK_DURATION)
+
+                iti = self.rng.uniform(ITI_MIN, ITI_MAX)
+                visual.TextStim(self.win, text="+", color="white", height=0.2, pos=(0, 0)).draw()
+                self.meg.write('fixation') # send trigger
+                self.win.flip()
+                core.wait(iti)
+
+            visual.TextStim(self.win, text="End of block. Time to rest.", color="white", height=0.1, pos=(0, .3)).draw()
+            visual.TextStim(self.win, text="(Press space to continue)", color="white", height=0.08, pos=(0, -.6)).draw()
             self.win.flip()
-            core.wait(image_duration)
+            keys = event.waitKeys(keyList=["space"])
 
-            # 50 ms between image and text, to give a break in the photodiode square
-            self.win.flip()
-            core.wait(0.05)
-
-            # Show name of object
-            text_label = text_name[1:].capitalize()
-            visual.TextStim(self.win, text=text_label, color="white", height=0.1, pos=(0, 0)).draw()
-            self.draw_photodiode_square()
-            self.meg.write(text_label) # send trigger
-            self.win.flip()
-
-            # Get keypress from user
-            resp_clock = core.Clock()
-            keys = event.waitKeys(maxWait=TEXT_DURATION, keyList=[CORRECT_KEY, INCORRECT_KEY], timeStamped=resp_clock)
-
-            if keys:
-                key, rt = keys[0]
-                self.meg.write(key + '_press') # send trigger
-
-                correct = (key == CORRECT_KEY and is_match) or (key == INCORRECT_KEY and not is_match)
-                feedback = "Correct" if correct else "Incorrect"
-                self.behavior_writer.writerow(
-                    [self.subject_id, trial_num, obj_name, text_name, is_match, key, correct, rt]
-                )
-            else:
-                feedback = "please respond faster"
-                self.behavior_writer.writerow(
-                    [self.subject_id, trial_num, obj_name, text_name, is_match, "", "", ""]
-                )
-
-            visual.TextStim(self.win, text=feedback, color="white", height=0.1, pos=(0, 0)).draw()
-            self.win.flip()
-            self.meg.write('feedback_message') # send trigger
-            core.wait(FEEDBACK_DURATION)
-
-            iti = self.rng.uniform(ITI_MIN, ITI_MAX)
-            visual.TextStim(self.win, text="+", color="white", height=0.2, pos=(0, 0)).draw()
-            self.meg.write('fixation') # send trigger
-            self.win.flip()
-            core.wait(iti)
 
         self.close()
 
