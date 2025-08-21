@@ -362,7 +362,7 @@ class StructureLearning:
                 scrambled_sequences_screen(which_seq = 2)
 
             # Quiz phase
-            for probe_ix in range(10):
+            for probe_ix in range(40):
                 quiz_screen(run_number=run)  # Pass run number to quiz_screen
                 self.win.flip()
                 core.wait(ISI)
