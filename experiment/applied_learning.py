@@ -24,7 +24,7 @@ from .utils import (
     pos_and_seq_to_state,
 )
 
-actual_meg = False
+actual_meg = True
 fullscreen = True
 
 # Paths
@@ -181,7 +181,7 @@ class AppliedLearning:
         w, h = self.win.size
         s = 50  # square size in pixels
         visual.Rect(self.win, width=s, height=s, units='pix', fillColor='white',
-                    pos=(w/2 - s/2, -h/2 + s/2)).draw()
+                    pos=(-w/2 + s/2, -h/2 + s/2)).draw()
 
 
     def reverse_state_lookup(self, scrambled_position):
@@ -272,7 +272,7 @@ class AppliedLearning:
             self.meg.write('quiz_choices') # send trigger
             self.win.flip()
             clock = core.Clock()
-            key_data = event.waitKeys(maxWait=CHOICE_DURATION, keyList=["left", "right", "escape"], timeStamped=clock)
+            key_data = event.waitKeys(maxWait=CHOICE_DURATION, keyList=["1", "2", "escape"], timeStamped=clock)
 
             if not key_data:
                 # Subject timed out
@@ -290,8 +290,8 @@ class AppliedLearning:
                 key, rt = key_data[0]
                 self.meg.write(key + '_press') # send trigger
 
-                sj_correctness = ((key == "left") and correct_on_left) or ((key == "right") and (not correct_on_left))
-                chosen_state = correct_state if (key == "left" and correct_on_left or key=="right" and not correct_on_left) else incorrect_state
+                sj_correctness = ((key == "2") and correct_on_left) or ((key == "1") and (not correct_on_left))
+                chosen_state = correct_state if (key == "2" and correct_on_left or key=="1" and not correct_on_left) else incorrect_state
                 chosen_obj = self.object_mapping[chosen_state][1:]
             
             # State mapping
@@ -363,7 +363,7 @@ class AppliedLearning:
                 scrambled_sequences_screen(which_seq = 2)
 
             # Quiz phase
-            for probe_ix in range(10):
+            for probe_ix in range(40):
                 quiz_screen(run_number=run)  # Pass run number to quiz_screen
                 self.win.flip()
                 core.wait(ISI)

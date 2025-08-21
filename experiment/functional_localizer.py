@@ -15,12 +15,12 @@ from psychopy import core, event, visual
 from .trigger import MetaPort
 from .utils import SESSION2_OBJECTS
 
-actual_meg = False
+actual_meg = True
 fullscreen = True
 GLOBAL_DEBUG = False # Do not use when running participants!
 
-CORRECT_KEY = "p"
-INCORRECT_KEY = "q"
+CORRECT_KEY = "1"
+INCORRECT_KEY = "2"
 
 
 N_BLOCKS = 3
@@ -153,7 +153,7 @@ class FunctionalLocalizer:
         w, h = self.win.size
         s = 50  # square size in pixels
         visual.Rect(self.win, width=s, height=s, units='pix', fillColor='white',
-                    pos=(w/2 - s/2, -h/2 + s/2)).draw()
+                    pos=(-w/2 + s/2, -h/2 + s/2)).draw()
 
     def run(self) -> None:
         block_list = self.build_trials()
@@ -168,7 +168,7 @@ class FunctionalLocalizer:
         visual.TextStim(self.win, text="A picture will appear, followed by a word. " + \
             "If the word *matches* the picture, press " + CORRECT_KEY + ". " + \
             "Otherwise, press " + INCORRECT_KEY + ". ", color="white", height=0.1, pos=(0, .3)).draw()
-        visual.TextStim(self.win, text="(Press space to begin)", color="white", height=0.08, pos=(0, -.6)).draw()
+        visual.TextStim(self.win, text="(get ready to begin)", color="white", height=0.08, pos=(0, -.6)).draw()
         self.win.flip()
         keys = event.waitKeys(keyList=["space"])
 
