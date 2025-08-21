@@ -24,7 +24,7 @@ from .utils import (
     pos_and_seq_to_state,
 )
 
-actual_meg = True
+actual_meg = False
 fullscreen = True
 
 # Paths
@@ -33,27 +33,32 @@ IMAGES_DIR = HERE / "images"
 WIN_WIDTH = 900
 WIN_HEIGHT = 700
 
-MESSAGE_DURATION = 1.0
-SCRAMBLED_REPEATS = 5
-OBJECT_DURATION = 0.9
-REST_DURATION = 1.0
-N_OBJECTS = 8
-ISI = 1.0
-ITI = 1.5
+# For participants
+# MESSAGE_DURATION = 1.0
+# SCRAMBLED_REPEATS = 5
+# OBJECT_DURATION = 0.9
+# REST_DURATION = 1.0
+# N_OBJECTS = 8
+# ISI = 1.0
+# ITI = 1.5
+# PROBE_ALONE_DURATION = 3
+# CHOICE_DURATION = 5
+# TIMEOUT_MESSAGE_DURATION = 2
 
 # For debugging
-# MESSAGE_DURATION = 0.3
-# SCRAMBLED_REPEATS = 5
-# OBJECT_DURATION = 0.1
-# REST_DURATION = .1
-# N_OBJECTS = 8
-# ISI = .1
-# ITI = .1
+MESSAGE_DURATION = 0.3
+SCRAMBLED_REPEATS = 5
+OBJECT_DURATION = 0.1
+REST_DURATION = .1
+N_OBJECTS = 8
+ISI = .1
+ITI = .1
+PROBE_ALONE_DURATION = .1
+CHOICE_DURATION = .1
+TIMEOUT_MESSAGE_DURATION = .1
 
 N_RUNS = 3
 N_REPEATS = 3
-PROBE_ALONE_DURATION = 3
-CHOICE_DURATION = 5
 
 true_state_names = ['W', 'X', 'Y', 'Z', 'Wp', 'Xp', 'Yp', 'Zp']
 scrambled_positions = [0, 1, 2, 3, 4, 5, 6, 7]
@@ -90,9 +95,10 @@ class AppliedLearning:
     meg: MetaPort = field(init=False)
 
     def __post_init__(self) -> None:
-        # Create scrambling rule and object mapping, if they don't already exist
+        # Load this subject's scrambling rule from Day1
         self.scrambling_rule = get_scrambling_rule(self.subject_id)
-        self.object_mapping = get_object_mapping(self.subject_id, 'applied_learning')
+        # Force a new object mapping, to make sure it's novel for this subject
+        self.object_mapping = get_object_mapping(self.subject_id, 'applied_learning', force_new=True)
         
         if fullscreen:
             self.win = visual.Window(color="black", fullscr=True, units="norm")
@@ -252,7 +258,7 @@ class AppliedLearning:
                             height=0.07, pos=(0,0)).draw()
             self.meg.write('quiz_text') # send trigger
             self.win.flip()
-            core.wait(2.0)
+            core.wait(MESSAGE_DURATION)
 
             # Draw the probe stimulus
             visual.TextStim(self.win, text='When the options appear, choose the one that comes later in the same true sequence.', 
@@ -285,7 +291,7 @@ class AppliedLearning:
                 visual.TextStim(self.win, text='Too slow. Respond faster.', height=0.1, pos=(0,0)).draw()
                 self.meg.write('timeout_message') # send trigger
                 self.win.flip()
-                core.wait(2.0)
+                core.wait(TIMEOUT_MESSAGE_DURATION)
             else:
                 key, rt = key_data[0]
                 self.meg.write(key + '_press') # send trigger
@@ -339,21 +345,14 @@ class AppliedLearning:
 
         ################ Do the applied learning task ################
 
-        visual.TextStim(self.win, text='Now you will see today\'s stimuli in their scrambled order.', height=0.1, pos=(0,.15)).draw()
-        visual.TextStim(self.win, text='Press space when ready.', height=0.1, pos=(0,-.15)).draw()
-        self.win.flip()
-        event.waitKeys(keyList=['space'])
-
         # Do four runs
         for run in range(N_RUNS):
-
-            # Reshuffle pictures for each run (except the first)
-            if run > 0:
-                # Get new object mapping (pictures change but rule stays the same)
-                self.object_mapping = get_object_mapping(self.subject_id, 'applied_learning', force_new=True)
-                # Reload images with new mapping
-                self.preload_images()
             
+            visual.TextStim(self.win, text='Now you will see today\'s stimuli in their scrambled order.', height=0.1, pos=(0,.15)).draw()
+            visual.TextStim(self.win, text='Press space when ready.', height=0.1, pos=(0,-.15)).draw()
+            self.win.flip()
+            event.waitKeys(keyList=['space'])
+
             # Show scrambled sequence 1 three times (no prompt)
             for repeat in range(3):
                 scrambled_sequences_screen(which_seq = 1)
@@ -361,6 +360,11 @@ class AppliedLearning:
             # Show scrambled sequence 2 three times (no prompt)
             for repeat in range(3):
                 scrambled_sequences_screen(which_seq = 2)
+
+            visual.TextStim(self.win, text='Now we will quiz you on the **true** order.', height=0.1, pos=(0,.15)).draw()
+            visual.TextStim(self.win, text='Press space when ready.', height=0.1, pos=(0,-.15)).draw()
+            self.win.flip()
+            event.waitKeys(keyList=['space'])
 
             # Quiz phase
             for probe_ix in range(40):
