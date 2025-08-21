@@ -181,7 +181,7 @@ class AppliedLearning:
         w, h = self.win.size
         s = 50  # square size in pixels
         visual.Rect(self.win, width=s, height=s, units='pix', fillColor='white',
-                    pos=(w/2 - s/2, -h/2 + s/2)).draw()
+                    pos=(-w/2 + s/2, -h/2 + s/2)).draw()
 
 
     def reverse_state_lookup(self, scrambled_position):

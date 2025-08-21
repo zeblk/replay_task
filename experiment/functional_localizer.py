@@ -130,7 +130,7 @@ class FunctionalLocalizer:
         w, h = self.win.size
         s = 50  # square size in pixels
         visual.Rect(self.win, width=s, height=s, units='pix', fillColor='white',
-                    pos=(w/2 - s/2, -h/2 + s/2)).draw()
+                    pos=(-w/2 + s/2, -h/2 + s/2)).draw()
 
     def run(self) -> None:
         trial_order = self.build_trials()
