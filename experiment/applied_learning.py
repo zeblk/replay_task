@@ -24,7 +24,7 @@ from .utils import (
     pos_and_seq_to_state,
 )
 
-actual_meg = False
+actual_meg = True
 fullscreen = True
 
 # Paths
@@ -290,8 +290,8 @@ class AppliedLearning:
                 key, rt = key_data[0]
                 self.meg.write(key + '_press') # send trigger
 
-                sj_correctness = ((key == "1") and correct_on_left) or ((key == "2") and (not correct_on_left))
-                chosen_state = correct_state if (key == "1" and correct_on_left or key=="2" and not correct_on_left) else incorrect_state
+                sj_correctness = ((key == "2") and correct_on_left) or ((key == "1") and (not correct_on_left))
+                chosen_state = correct_state if (key == "2" and correct_on_left or key=="1" and not correct_on_left) else incorrect_state
                 chosen_obj = self.object_mapping[chosen_state][1:]
             
             # State mapping
