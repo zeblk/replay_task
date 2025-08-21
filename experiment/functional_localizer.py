@@ -15,7 +15,7 @@ from psychopy import core, event, visual
 from .trigger import MetaPort
 from .utils import SESSION2_OBJECTS
 
-actual_meg = False
+actual_meg = True
 fullscreen = True
 
 # Paths and constants
