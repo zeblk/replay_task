@@ -723,7 +723,7 @@ class Training:
 
         # ================= Open quizzes on all states, under a stable mapping =================
 
-        visual.TextStim(self.win, text="Now we will do many quiz questions under stable sequences!", height=0.1, pos=(0, 0.0)).draw()
+        visual.TextStim(self.win, text="Now we will do many quiz questions while keeping the sequence the same!", height=0.1, pos=(0, 0.0)).draw()
         visual.TextStim(self.win, text="Press space to continue.", height=0.08, pos=(0, -0.5)).draw()
         self.win.flip()
         event.waitKeys(keyList=["space"])
