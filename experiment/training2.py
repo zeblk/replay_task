@@ -680,6 +680,10 @@ class Training:
                 rule_screen(true_state=quiz_state_2)
                 left_right_msg(['space'])
 
+            # return average accuracy for the two quizzes
+            accuracy = 0.5 * (quiz_result_1 == 'correct') + 0.5 * (quiz_result_2 == 'correct')
+            return accuracy
+
         # ================= Train pieces of rule =================
 
         # Loop through until all parts of the rule have gained proficiency
@@ -729,11 +733,15 @@ class Training:
         event.waitKeys(keyList=["space"])
         permute_and_show_seqs()
 
-        for _ in range(40):
+        rolling_accuracy = 0.0
+        while rolling_accuracy < 0.8:
+
             quiz_state_1 = self.rng.choice(true_state_names)
             quiz_state_2 = random_state_from_same_seq(quiz_state_1)
 
-            do_quizzes(learning_levels, quiz_state_1, quiz_state_2)
+            accuracy = do_quizzes(learning_levels, quiz_state_1, quiz_state_2)
+
+            rolling_accuracy = 0.9 * rolling_accuracy + 0.1 * accuracy
 
 
         # ================= End-of-session screen =================
