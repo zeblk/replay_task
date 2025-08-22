@@ -188,8 +188,8 @@ class StructureLearning:
             visual.TextStim(self.win, text='Finally, we will ask quiz questions about the true (unscrambled) order.', height=0.1, pos=(0,-.5)).draw()
             
         def screen3():
-            visual.TextStim(self.win, text='Each quiz question will show one picture at the top, and ' + \
-                'two pictures below, like this.', height=0.1, pos=(0,.0)).draw()
+            visual.TextStim(self.win, text='Each question will show one picture at the top, and ' + \
+                'two below, like this. Your task is to say which bottom picture comes after the one at the top, in its true sequence.', height=0.1, pos=(0,.0)).draw()
             self.get_object(self.reverse_state_lookup(0), size=(0.5,0.5), pos=(0,.5)).draw()
             self.get_object(self.reverse_state_lookup(1), size=(0.3,0.3), pos=(-.5,-.5)).draw()
             self.get_object(self.reverse_state_lookup(2), size=(0.3,0.3), pos=(.5,-.5)).draw()
@@ -200,7 +200,7 @@ class StructureLearning:
             visual.TextStim(self.win, text='*Remember, the rule stays the same*', height=0.1, pos=(0,-.5)).draw()
             
         def screen5():
-            visual.TextStim(self.win, text='You can choose one of the two pictures below.', height=0.08, pos=(0,.15)).draw()
+            visual.TextStim(self.win, text='Remember: you can choose one of the two pictures below.', height=0.08, pos=(0,.15)).draw()
             visual.TextStim(self.win, text='The correct choice is the picture that is *later in the same true sequence* ' + \
                 'as the picture on top.', height=0.08, pos=(0,-.17)).draw()
             self.get_object(self.reverse_state_lookup(0), size=(0.5,0.5), pos=(0,.5)).draw()
