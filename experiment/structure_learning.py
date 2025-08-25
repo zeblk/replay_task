@@ -83,6 +83,7 @@ class StructureLearning:
     scrambling_rule: Dict[str, int] = field(init=False)
     object_mapping: Dict[str, str] = field(init=False)
     object_stims: Dict[str, visual.ImageStim] = field(init=False)
+    last_probed: tuple[int, int] = field(init=False)
 
     def __post_init__(self) -> None:
         self.scrambling_rule = get_scrambling_rule(self.subject_id)
@@ -125,6 +126,7 @@ class StructureLearning:
 
         # pre-load images
         self.preload_images()
+        self.last_probed = (-1, -1)
        
     def preload_images(self) -> None:
         """Helper method to load/reload images"""
@@ -234,8 +236,13 @@ class StructureLearning:
             # Select the probe state
             prob_seq = random.choice([1,2])
             prob_pos = random.choice([1,2,3])
+            while (prob_seq, prob_pos) == self.last_probed:
+                prob_seq = random.choice([1,2])
+                prob_pos = random.choice([1,2,3])
+
+            self.last_probed = (prob_seq, prob_pos)
             probe_state = pos_and_seq_to_state(pos=prob_pos, seq=prob_seq)
-            
+
             # Select the correct choice option
             correct_seq = prob_seq
             correct_pos = random.choice(range(prob_pos+1,5))
