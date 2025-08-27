@@ -16,11 +16,10 @@ human_to_byte = {
        'Wp': 14, 'Xp': 15, 'Yp': 16, 'Zp': 17,
        'fixation': 20, 'quiz_text': 21, 'probe_state': 22, 
        'quiz_choices': 23, 'timeout_message': 24, 'feedback_message': 25,
-       '2_press': 30, '1_press': 31, # applied_learning
-       '1_press': 40, '2_press': 41, # Localizer
+       '1_press': 40, '2_press': 41, # Button Presses (SAME for localizer & applied_learning)
        'start_rest': 50, 'end_rest': 51 }, # rest period
-    **{name: 40+ix for (ix, name) in enumerate(SESSION2_OBJECTS)}, # images
-    **{name[1:].capitalize(): 50+ix for (ix,name) in enumerate(SESSION2_OBJECTS)}, # text names of objects
+    **{name: 50+ix for (ix, name) in enumerate(SESSION2_OBJECTS)}, # images (Localizer)
+    **{name[1:].capitalize(): 60+ix for (ix,name) in enumerate(SESSION2_OBJECTS)}, # text names of objects (Localizer)
     }
 
 class MetaPort:
