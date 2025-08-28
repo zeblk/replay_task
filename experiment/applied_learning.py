@@ -24,7 +24,7 @@ from .utils import (
     pos_and_seq_to_state,
 )
 
-actual_meg = False
+actual_meg = True
 fullscreen = True
 
 # Paths
