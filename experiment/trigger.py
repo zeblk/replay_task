@@ -18,8 +18,8 @@ human_to_byte = {
        'quiz_choices': 23, 'timeout_message': 24, 'feedback_message': 25,
        'left_press': 40, 'right_press': 41, # Button Presses (SAME for localizer & applied_learning)
        'start_rest': 50, 'end_rest': 51 }, # rest period
-    **{name: 50+ix for (ix, name) in enumerate(SESSION2_OBJECTS)}, # images (Localizer)
-    **{name[1:].capitalize(): 60+ix for (ix,name) in enumerate(SESSION2_OBJECTS)}, # text names of objects (Localizer)
+    **{name: 60+ix for (ix, name) in enumerate(SESSION2_OBJECTS)}, # images (Localizer)
+    **{name[1:].capitalize(): 70+ix for (ix,name) in enumerate(SESSION2_OBJECTS)}, # text names of objects (Localizer)
     }
 
 class MetaPort:

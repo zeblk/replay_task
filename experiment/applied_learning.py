@@ -278,8 +278,8 @@ class AppliedLearning:
             self.meg.write('quiz_choices') # send trigger
             self.win.flip()
             clock = core.Clock()
-            # key_data = event.waitKeys(maxWait=CHOICE_DURATION, keyList=["1", "2", "escape"], timeStamped=clock)
-            key_data = event.waitKeys(maxWait=CHOICE_DURATION, keyList=["left", "right", "escape"], timeStamped=clock)
+            key_data = event.waitKeys(maxWait=CHOICE_DURATION, keyList=["1", "2", "escape"], timeStamped=clock)
+            # key_data = event.waitKeys(maxWait=CHOICE_DURATION, keyList=["left", "right", "escape"], timeStamped=clock)
 
             if not key_data:
                 # Subject timed out
@@ -297,10 +297,10 @@ class AppliedLearning:
                 key, rt = key_data[0]
                 self.meg.write(key + '_press') # send trigger
 
-                # sj_correctness = ((key == "2") and correct_on_left) or ((key == "1") and (not correct_on_left))
-                # chosen_state = correct_state if (key == "2" and correct_on_left or key=="1" and not correct_on_left) else incorrect_state
-                sj_correctness = ((key == "left") and correct_on_left) or ((key == "right") and (not correct_on_left))
-                chosen_state = correct_state if (key == "left" and correct_on_left or key=="right" and not correct_on_left) else incorrect_state
+                sj_correctness = ((key == "2") and correct_on_left) or ((key == "1") and (not correct_on_left))
+                chosen_state = correct_state if (key == "2" and correct_on_left or key=="1" and not correct_on_left) else incorrect_state
+                # sj_correctness = ((key == "left") and correct_on_left) or ((key == "right") and (not correct_on_left))
+                # chosen_state = correct_state if (key == "left" and correct_on_left or key=="right" and not correct_on_left) else incorrect_state
                 chosen_obj = self.object_mapping[chosen_state][1:]
             
             # State mapping
