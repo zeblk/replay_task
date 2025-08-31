@@ -6,7 +6,7 @@ from psychopy import core, event, visual
 from .trigger import MetaPort
 
 fullscreen = True
-actual_meg = False
+actual_meg = True
 REST_DURATION = 300 # 300 seconds = 5 minutes
 
 @dataclass
