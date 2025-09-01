@@ -7,6 +7,7 @@ import math
 import os
 from pathlib import Path
 import random
+import hashlib
 
 
 def read_json(path: Path) -> dict:
@@ -107,35 +108,16 @@ def ordinal_string(n: int) -> str:
 
 def get_scrambling_rule(subject_id: int):
     """
-    Return the scrambling rule for the subject, retrieving it from a central
-    file or creating a new one if needed.
-    """
-    # All rules are stored in a single file.
-    fname = Path("scrambling_rules.json")
-    all_rules = read_json(fname)
-
-    # Convert integer ID to a string for human readability of the JSON file.
-    subject_str = 'subject_' + str(subject_id)
-    
-    # If the rule for this subject already exists, return it.
-    if subject_str in all_rules:
-        return all_rules[subject_str]
-
-    # Otherwise, create a new rule because one doesn't exist for this subject.
-    new_rule = create_random_mapping()
-
-    # Add the newly created rule to our collection and save it.
-    all_rules[subject_str] = new_rule
-    write_json(fname, all_rules)
-        
-    return new_rule
-
-def create_random_mapping():
-    """
-    Creates a random mapping from lettercodes to numbers 0-7 with constraints.
-    
+    Creates a random mapping from lettercodes to numbers 0-7 with constraints.    
     Constraint: Within each scrambled sequence, we must alternate between the two true sequences.
     """
+
+    # Seed the RNG using the participant's ID, for consistency across computers and sessions
+    s = str(subject_id).strip().encode('utf-8')
+    random_seed = int(hashlib.sha256(s).hexdigest(), 16) % (2**32)
+    rng = random.Random(random_seed)
+
+    # Define the true sequences
     true_sequence_1 = ['W', 'X', 'Y', 'Z']
     true_sequence_2 = ['Wp', 'Xp', 'Yp', 'Zp']
     
@@ -150,10 +132,10 @@ def create_random_mapping():
     for num in range(8):
         if num == 0:
             # First number can go anywhere
-            chosen_code = random.choice(available_codes)
+            chosen_code = rng.choice(available_codes)
         elif num == 4:
             # Number 4 can go anywhere (no constraint with 3)
-            chosen_code = random.choice(available_codes)
+            chosen_code = rng.choice(available_codes)
         else:
             # For numbers 1,2,3,5,6,7 - check constraint with previous number
             prev_num = num - 1
@@ -165,7 +147,7 @@ def create_random_mapping():
             else:
                 valid_codes = [code for code in available_codes if code in true_sequence_1]
             
-            chosen_code = random.choice(valid_codes)
+            chosen_code = rng.choice(valid_codes)
         
         # Update our tracking
         mapping[chosen_code] = num
@@ -177,7 +159,9 @@ def create_random_mapping():
         else:
             number_subsets[num] = 'seq2'
     
+    
     return mapping
+
 
 
 def get_object_mapping(subject_id: int, phase: str, force_new: bool=False) -> dict:
