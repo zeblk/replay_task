@@ -19,8 +19,8 @@ actual_meg = True
 fullscreen = True
 GLOBAL_DEBUG = False # Do not use when running participants!
 
-CORRECT_KEY = "1"   # right
-INCORRECT_KEY = "2" # left
+CORRECT_KEY = "1"   # left
+INCORRECT_KEY = "2" # right
 
 
 N_BLOCKS = 3
