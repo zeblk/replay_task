@@ -16,7 +16,7 @@ human_to_byte = {
        'Wp': 14, 'Xp': 15, 'Yp': 16, 'Zp': 17,
        'fixation': 20, 'quiz_text': 21, 'probe_state': 22, 
        'quiz_choices': 23, 'timeout_message': 24, 'feedback_message': 25,
-       'left_press': 40, 'right_press': 41, # Button Presses (SAME for localizer & applied_learning)
+       '2_press': 40, '1_press': 41, # Button Presses (SAME for localizer & applied_learning)
        'start_rest': 50, 'end_rest': 51 }, # rest period
     **{name: 60+ix for (ix, name) in enumerate(SESSION2_OBJECTS)}, # images (Localizer)
     **{name[1:].capitalize(): 70+ix for (ix,name) in enumerate(SESSION2_OBJECTS)}, # text names of objects (Localizer)
