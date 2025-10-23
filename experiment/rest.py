@@ -8,6 +8,8 @@ from .trigger import MetaPort
 fullscreen = True
 actual_meg = True
 REST_DURATION = 300 # 300 seconds = 5 minutes
+WIN_WIDTH = 900
+WIN_HEIGHT = 700
 
 @dataclass
 class Rest:
@@ -47,10 +49,17 @@ class Rest:
             self.behavior_file.close()
         except Exception:
             pass
+    
+    def draw_photodiode_square(self) -> None:
+        w, h = self.win.size
+        s = 50  # square size in pixels
+        visual.Rect(self.win, width=s, height=s, units='pix', fillColor='white',
+                    pos=(-w/2 + s/2, -h/2 + s/2)).draw()
 
     def run(self) -> None:
 
         visual.TextStim(self.win, text='Press space to begin rest period.', height=0.1, pos=(0, .0)).draw()
+        self.draw_photodiode_square()
         self.win.flip()
         event.waitKeys(keyList=["space"])
 

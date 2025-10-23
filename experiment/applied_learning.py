@@ -44,6 +44,7 @@ ITI = 1.5
 PROBE_ALONE_DURATION = 3
 CHOICE_DURATION = 5
 TIMEOUT_MESSAGE_DURATION = 2
+QUIZ_WAIT_TIME = 10
 
 # For debugging
 # MESSAGE_DURATION = 0.3
@@ -352,7 +353,7 @@ class AppliedLearning:
         for run in range(N_RUNS):
             
             visual.TextStim(self.win, text='Now you will see today\'s stimuli in their scrambled order.', height=0.1, pos=(0,.15)).draw()
-            visual.TextStim(self.win, text='Press space when ready.', height=0.1, pos=(0,-.15)).draw()
+            visual.TextStim(self.win, text='Please get ready to start.', height=0.1, pos=(0,-.15)).draw()
             self.win.flip()
             event.waitKeys(keyList=['space'])
 
@@ -365,9 +366,9 @@ class AppliedLearning:
                 scrambled_sequences_screen(which_seq = 2)
 
             visual.TextStim(self.win, text='Now we will quiz you on the **true** order.', height=0.1, pos=(0,.15)).draw()
-            visual.TextStim(self.win, text='Press space when ready.', height=0.1, pos=(0,-.15)).draw()
+            visual.TextStim(self.win, text='Get ready...', height=0.1, pos=(0,-.15)).draw()
             self.win.flip()
-            event.waitKeys(keyList=['space'])
+            core.wait(QUIZ_WAIT_TIME)
 
             # Quiz phase
             for probe_ix in range(40):
@@ -376,7 +377,7 @@ class AppliedLearning:
                 core.wait(ISI)
 
         visual.TextStim(self.win, text="All done.", height=0.1, pos=(0,0.0)).draw()
-        visual.TextStim(self.win, text="Press space to exit", height=0.07, pos=(0,-0.5)).draw()
+        visual.TextStim(self.win, text="Thank you for your participation!", height=0.07, pos=(0,-0.5)).draw()
         self.win.flip()
         event.waitKeys(keyList=['space'])
 
