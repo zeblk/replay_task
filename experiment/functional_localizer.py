@@ -236,7 +236,7 @@ class FunctionalLocalizer:
                 core.wait(iti)
 
             visual.TextStim(self.win, text="End of block. Time to rest.", color="white", height=0.1, pos=(0, .3)).draw()
-            visual.TextStim(self.win, text="(Press space to continue)", color="white", height=0.08, pos=(0, -.6)).draw()
+            # visual.TextStim(self.win, text="(Press space to continue)", color="white", height=0.08, pos=(0, -.6)).draw()
             self.win.flip()
             keys = event.waitKeys(keyList=["space"])
 

@@ -58,7 +58,7 @@ class Rest:
 
     def run(self) -> None:
 
-        visual.TextStim(self.win, text='Press space to begin rest period.', height=0.1, pos=(0, .0)).draw()
+        visual.TextStim(self.win, text='Get ready to begin rest period.', height=0.1, pos=(0, .0)).draw()
         self.draw_photodiode_square()
         self.win.flip()
         event.waitKeys(keyList=["space"])
@@ -69,7 +69,7 @@ class Rest:
         self.meg.write('end_rest') # send trigger
 
 
-        visual.TextStim(self.win, text="Press space to exit", height=0.1, pos=(0, 0)).draw()
+        visual.TextStim(self.win, text="End of rest period.", height=0.1, pos=(0, 0)).draw()
         self.win.flip()
         event.waitKeys(keyList=["space"])
         self.close()
